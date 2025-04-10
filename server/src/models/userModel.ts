@@ -16,6 +16,7 @@ interface UserInput {
   email: string;
   password: string;
   name: string;
+  role?: string;
 }
 
 class UserModel {
@@ -23,7 +24,7 @@ class UserModel {
     const hashedPassword = await hashPassword(userData.password);
     const [result] = await db.execute(
       "INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)",
-      [userData.email, hashedPassword, userData.name, "buyer"]
+      [userData.email, hashedPassword, userData.name, userData.role || "bayer"]
     );
     return (result as mysql.ResultSetHeader).insertId;
   }
