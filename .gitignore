@@ -3,6 +3,23 @@
 # dependencies
 **/node_modules/
 
+# Игнорировать билд-файлы Next.js
+/client/.next/
+/client/out/
+
+# Игнорировать зависимости
+/client/node_modules/
+
+# Игнорировать кэш и временные файлы
+/client/.cache/
+/client/*.hot-update.*
+/client/.env*.local
+
+# Игнорировать системные файлы (если есть)
+/client/.DS_Store
+/client/.idea/
+/client/.vscode/
+
 # next.js
 /.next/
 /out/
