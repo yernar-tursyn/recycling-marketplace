@@ -20,7 +20,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Маршруты
-app.use("/api/buyers", authRoutes);
+app.use("/api/users", authRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
