@@ -120,15 +120,71 @@ export const updateMaterial = async (req: Request, res: Response) => {
 };
 
 export const deleteMaterial = async (req: Request, res: Response) => {
+  // Проверка аутентификации
+  if (!req.user) {
+    return res.status(401).json({
+      error: "Неавторизованный доступ",
+      details: "Требуется авторизация",
+    });
+  }
+
+  const materialId = Number(req.params.id);
+  if (isNaN(materialId)) {
+    return res.status(400).json({
+      error: "Неверный ID материала",
+      details: "ID должен быть числом",
+    });
+  }
+
   try {
-    const success = await MaterialModel.delete(Number(req.params.id));
-    if (!success) {
-      return res.status(404).json({ error: "Материал не найден" });
+    // Проверка существования материала
+    const material = await MaterialModel.findById(materialId);
+    if (!material) {
+      return res.status(404).json({
+        error: "Материал не найден",
+        details: `Материал с ID ${materialId} не существует`,
+      });
     }
-    res.json({ success: true });
+
+    // Проверка прав доступа
+    // if (material.seller_id !== req.user.id && req.user.role !== "admin") {
+    //   return res.status(403).json({
+    //     error: "Доступ запрещен",
+    //     details: "Вы не имеете прав на удаление этого материала",
+    //   });
+    // }
+
+    // Удаление материала
+    const { success, message } = await MaterialModel.delete(materialId);
+
+    if (!success) {
+      return res.status(500).json({
+        error: "Ошибка при удалении",
+        details: message || "Неизвестная ошибка",
+      });
+    }
+
+    // Успешный ответ
+    return res.json({
+      success: true,
+      message: message || "Материал успешно удален",
+      deletedMaterial: {
+        id: material.id,
+        name: material.name,
+        category: material.category,
+      },
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Ошибка при удалении материала" });
+    console.error("Delete material error:", error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Внутренняя ошибка сервера";
+
+    return res.status(500).json({
+      error: "Ошибка при удалении материала",
+      details: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
   }
 };
 

@@ -1,7 +1,6 @@
 import db from "../config/db";
-import { RowDataPacket } from "mysql2";
+import { ResultSetHeader, RowDataPacket } from "mysql2";
 import mysql from "mysql2/promise";
-import { ResultSetHeader } from "mysql2";
 
 interface Material extends RowDataPacket {
   id: number;
@@ -59,17 +58,37 @@ class MaterialModel {
     }
   }
 
-  static async findAll(): Promise<Material[]> {
-    const [rows] = await db.query<Material[]>("SELECT * FROM materials");
+  static async search(
+    query?: string,
+    category?: string,
+    sort?: string
+  ): Promise<Material[]> {
+    let sql = "SELECT * FROM materials WHERE 1=1";
+    const params = [];
+
+    if (query) {
+      sql += " AND (name LIKE ? OR description LIKE ?)";
+      params.push(`%${query}%`, `%${query}%`);
+    }
+
+    if (category) {
+      sql += " AND category = ?";
+      params.push(category);
+    }
+
+    if (sort === "price") {
+      sql += " ORDER BY price";
+    } else if (sort === "date") {
+      sql += " ORDER BY created_at DESC";
+    }
+
+    const [rows] = await db.query<Material[]>(sql, params);
     return rows;
   }
 
-  static async findById(id: number): Promise<Material | null> {
-    const [rows] = await db.query<Material[]>(
-      "SELECT * FROM materials WHERE id = ?",
-      [id]
-    );
-    return rows[0] || null;
+  static async findAll(): Promise<Material[]> {
+    const [rows] = await db.query<Material[]>("SELECT * FROM materials");
+    return rows;
   }
 
   static async update(
@@ -103,39 +122,46 @@ class MaterialModel {
     }
   }
 
-  static async delete(id: number): Promise<boolean> {
-    const [result] = await db.execute("DELETE FROM materials WHERE id = ?", [
-      id,
-    ]);
-    return (result as any).affectedRows > 0;
+  static async delete(
+    id: number
+  ): Promise<{ success: boolean; message?: string }> {
+    try {
+      const [result] = await db.execute<ResultSetHeader>(
+        "DELETE FROM materials WHERE id = ?",
+        [id]
+      );
+
+      return {
+        success: result.affectedRows > 0,
+        message:
+          result.affectedRows > 0
+            ? `Материал с ID ${id} успешно удален`
+            : `Материал с ID ${id} не найден`,
+      };
+    } catch (error) {
+      console.error("Delete error:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Ошибка при удалении",
+      };
+    }
   }
 
-  static async search(
-    query?: string,
-    category?: string,
-    sort?: string
-  ): Promise<Material[]> {
-    let sql = "SELECT * FROM materials WHERE 1=1";
-    const params = [];
-
-    if (query) {
-      sql += " AND (name LIKE ? OR description LIKE ?)";
-      params.push(`%${query}%`, `%${query}%`);
+  static async findById(id: number): Promise<Material | null> {
+    try {
+      const [rows] = await db.query<Material[]>(
+        `SELECT 
+          id, name, category, description, 
+          price, quantity, unit, location,
+          seller_id, image_url, created_at, updated_at
+         FROM materials WHERE id = ?`,
+        [id]
+      );
+      return rows[0] || null;
+    } catch (error) {
+      console.error("Find by ID error:", error);
+      throw new Error("Ошибка при поиске материала");
     }
-
-    if (category) {
-      sql += " AND category = ?";
-      params.push(category);
-    }
-
-    if (sort === "price") {
-      sql += " ORDER BY price";
-    } else if (sort === "date") {
-      sql += " ORDER BY created_at DESC";
-    }
-
-    const [rows] = await db.query<Material[]>(sql, params);
-    return rows;
   }
 }
 
