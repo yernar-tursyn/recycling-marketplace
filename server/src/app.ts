@@ -5,6 +5,9 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/authRoutes";
 import { Request, Response, NextFunction } from "express";
 
+// Импортируем маршруты для материалов
+import materialRoutes from "./routes/materialRoutes";
+
 const app = express();
 
 // Middleware
@@ -21,6 +24,7 @@ app.use(limiter);
 
 // Маршруты
 app.use("/api/users", authRoutes);
+app.use("/api/materials", materialRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
