@@ -1,16 +1,70 @@
 import { Request, Response } from "express";
 import { MaterialModel, MaterialInput } from "../models/materialModel";
+import { QueryError } from "mysql2";
 
 export const createMaterial = async (req: Request, res: Response) => {
   try {
-    const materialData: MaterialInput = req.body;
+    const { name, category, price, quantity, location, seller_id } = req.body;
+
+    if (!name || !category || !price || !quantity || !location || !seller_id) {
+      return res.status(400).json({
+        error: "Необходимо заполнить все обязательные поля",
+      });
+    }
+
+    const materialData: MaterialInput = {
+      name,
+      category,
+      price: Number(price),
+      quantity: Number(quantity),
+      location,
+      seller_id: Number(seller_id),
+      description: req.body.description || null,
+      image_url: req.body.image_url || null,
+      unit: req.body.unit || "kg",
+    };
+
     const id = await MaterialModel.create(materialData);
-    res.status(201).json({ id, ...materialData });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Ошибка при создании материала" });
+    const createdMaterial = await MaterialModel.findById(id);
+
+    return res.status(201).json(createdMaterial);
+  } catch (error: unknown) {
+    // Типизируем ошибку
+    if (error instanceof Error) {
+      console.error("Ошибка создания материала:", error.message);
+
+      // Проверяем MySQL ошибки
+      if (isQueryError(error)) {
+        console.error("MySQL Error Code:", error.code);
+
+        if (error.code === "ER_NO_REFERENCED_ROW_2") {
+          return res.status(400).json({
+            error: "Указанный продавец не существует",
+            details:
+              process.env.NODE_ENV === "development"
+                ? error.message
+                : undefined,
+          });
+        }
+      }
+
+      return res.status(500).json({
+        error: "Ошибка при создании материала",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+
+    return res.status(500).json({
+      error: "Неизвестная ошибка при создании материала",
+    });
   }
 };
+
+// Вспомогательная функция для проверки типа MySQL ошибки
+function isQueryError(error: unknown): error is QueryError {
+  return typeof error === "object" && error !== null && "code" in error;
+}
 
 export const getMaterials = async (req: Request, res: Response) => {
   try {

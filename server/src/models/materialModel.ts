@@ -28,23 +28,33 @@ interface MaterialInput {
 
 class MaterialModel {
   static async create(material: MaterialInput): Promise<number> {
-    const [result] = await db.execute(
-      `INSERT INTO materials 
-       (name, category, description, price, quantity, unit, location, seller_id, image_url) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        material.name,
-        material.category,
-        material.description,
-        material.price,
-        material.quantity,
-        material.unit || "kg",
-        material.location,
-        material.seller_id,
-        material.image_url,
-      ]
-    );
-    return (result as any).insertId;
+    try {
+      const [result] = await db.execute(
+        `INSERT INTO materials 
+         (name, category, description, price, quantity, unit, location, seller_id, image_url) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          material.name,
+          material.category,
+          material.description || null,
+          material.price,
+          material.quantity,
+          material.unit || "kg",
+          material.location,
+          material.seller_id,
+          material.image_url || null,
+        ]
+      );
+
+      if (!(result as any).insertId) {
+        throw new Error("Не удалось получить ID созданного материала");
+      }
+
+      return (result as any).insertId;
+    } catch (error) {
+      console.error("Ошибка в MaterialModel.create:", error);
+      throw error; // Пробрасываем ошибку дальше
+    }
   }
 
   static async findAll(): Promise<Material[]> {
