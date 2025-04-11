@@ -11,6 +11,6 @@ router.post("/register", register);
 router.post("/login", login);
 
 // Получение информации о профиле
-// router.get("/profile", authMiddleware, getProfile);
+router.get("/profile", authMiddleware, getProfile);
 
 export default router;

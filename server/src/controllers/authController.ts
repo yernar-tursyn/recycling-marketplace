@@ -76,20 +76,30 @@ export const getProfile = async (
   res: Response
 ): Promise<Response> => {
   try {
+    // Проверка авторизации
     if (!req.user?.id) {
       return res.status(401).json({ error: "Не авторизован" });
     }
 
+    // Получение пользователя из БД
     const user = await UserModel.findById(req.user.id);
+
     if (!user) {
       return res.status(404).json({ error: "Пользователь не найден" });
     }
 
-    return res.json(user);
+    // Форматируем ответ согласно спецификации
+    const responseData = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    };
+
+    return res.json(responseData);
   } catch (error) {
     console.error("Ошибка при получении профиля:", error);
-    return res
-      .status(500)
-      .json({ error: "Ошибка сервера при получении профиля" });
+    return res.status(500).json({
+      error: "Ошибка сервера при получении профиля",
+    });
   }
 };

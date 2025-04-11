@@ -1,11 +1,14 @@
 import { JwtPayload } from "jsonwebtoken";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload | { id: number };
-    }
+declare module "express-serve-static-core" {
+  interface Request {
+    user?: UserPayload;
   }
 }
 
-export {};
+interface UserPayload {
+  id: number;
+  // Дополнительные поля, если нужно (но лучше минимизировать)
+}
+
+export {}; // Важно для модульной системы
