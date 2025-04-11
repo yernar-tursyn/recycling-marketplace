@@ -1,5 +1,7 @@
 import db from "../config/db";
 import { RowDataPacket } from "mysql2";
+import mysql from "mysql2/promise";
+import { ResultSetHeader } from "mysql2";
 
 interface Material extends RowDataPacket {
   id: number;
@@ -74,24 +76,31 @@ class MaterialModel {
     id: number,
     material: Partial<MaterialInput>
   ): Promise<boolean> {
-    const [result] = await db.execute(
-      `UPDATE materials SET 
-       name = ?, category = ?, description = ?, price = ?, 
-       quantity = ?, unit = ?, location = ?, image_url = ?
-       WHERE id = ?`,
-      [
-        material.name,
-        material.category,
-        material.description,
-        material.price,
-        material.quantity,
-        material.unit,
-        material.location,
-        material.image_url,
-        id,
-      ]
+    // Фильтруем поля для обновления
+    const fieldsToUpdate = Object.entries(material)
+      .filter(([_, value]) => value !== undefined)
+      .map(([key]) => key);
+
+    if (fieldsToUpdate.length === 0) {
+      throw new Error("No fields to update");
+    }
+
+    // Строим динамический запрос
+    const setClause = fieldsToUpdate.map((field) => `${field} = ?`).join(", ");
+    const values = fieldsToUpdate.map(
+      (field) => material[field as keyof typeof material]
     );
-    return (result as any).affectedRows > 0;
+    values.push(id);
+
+    const sql = `UPDATE materials SET ${setClause} WHERE id = ?`;
+
+    try {
+      const [result] = await db.execute<ResultSetHeader>(sql, values);
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error("Update error:", error);
+      throw error;
+    }
   }
 
   static async delete(id: number): Promise<boolean> {

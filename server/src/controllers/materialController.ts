@@ -61,10 +61,20 @@ export const createMaterial = async (req: Request, res: Response) => {
   }
 };
 
-// Вспомогательная функция для проверки типа MySQL ошибки
-function isQueryError(error: unknown): error is QueryError {
-  return typeof error === "object" && error !== null && "code" in error;
-}
+export const searchMaterials = async (req: Request, res: Response) => {
+  try {
+    const { query, category, sort } = req.query;
+    const materials = await MaterialModel.search(
+      query as string,
+      category as string,
+      sort as string
+    );
+    res.json(materials);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Ошибка при поиске материалов" });
+  }
+};
 
 export const getMaterials = async (req: Request, res: Response) => {
   try {
@@ -76,29 +86,36 @@ export const getMaterials = async (req: Request, res: Response) => {
   }
 };
 
-export const getMaterialById = async (req: Request, res: Response) => {
-  try {
-    const material = await MaterialModel.findById(Number(req.params.id));
-    if (!material) {
-      return res.status(404).json({ error: "Материал не найден" });
-    }
-    res.json(material);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Ошибка при получении материала" });
-  }
-};
-
 export const updateMaterial = async (req: Request, res: Response) => {
   try {
+    if (Object.keys(req.body).length === 0) {
+      return res.status(400).json({ error: "Нет данных для обновления" });
+    }
+
     const success = await MaterialModel.update(Number(req.params.id), req.body);
+
     if (!success) {
       return res.status(404).json({ error: "Материал не найден" });
     }
-    res.json({ success: true });
+
+    // Получаем обновлённый материал для ответа
+    const updatedMaterial = await MaterialModel.findById(Number(req.params.id));
+    res.json({
+      success: true,
+      message: "Материал успешно обновлён",
+      material: updatedMaterial,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Ошибка при обновлении материала" });
+    console.error("Update material error:", error);
+
+    if (error instanceof Error) {
+      return res.status(400).json({
+        error: "Ошибка при обновлении материала",
+        details: error.message,
+      });
+    }
+
+    res.status(500).json({ error: "Внутренняя ошибка сервера" });
   }
 };
 
@@ -115,17 +132,20 @@ export const deleteMaterial = async (req: Request, res: Response) => {
   }
 };
 
-export const searchMaterials = async (req: Request, res: Response) => {
+export const getMaterialById = async (req: Request, res: Response) => {
   try {
-    const { query, category, sort } = req.query;
-    const materials = await MaterialModel.search(
-      query as string,
-      category as string,
-      sort as string
-    );
-    res.json(materials);
+    const material = await MaterialModel.findById(Number(req.params.id));
+    if (!material) {
+      return res.status(404).json({ error: "Материал не найден" });
+    }
+    res.json(material);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Ошибка при поиске материалов" });
+    res.status(500).json({ error: "Ошибка при получении материала" });
   }
 };
+
+// Вспомогательная функция для проверки типа MySQL ошибки
+function isQueryError(error: unknown): error is QueryError {
+  return typeof error === "object" && error !== null && "code" in error;
+}
