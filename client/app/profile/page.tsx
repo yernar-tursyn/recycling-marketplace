@@ -14,14 +14,17 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserApplications } from "@/services/application-service";
+import { getUserMaterials } from "@/services/material-service";
 import type { ApplicationType } from "@/types/application";
+import type { MaterialType } from "@/types/material";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, FileText, MapPin, Package } from "lucide-react";
+import { CalendarDays, FileText, MapPin, Package, Plus } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const router = useRouter();
   const [applications, setApplications] = useState<ApplicationType[]>([]);
+  const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
@@ -30,12 +33,17 @@ export default function ProfilePage() {
       return;
     }
 
-    const fetchApplications = async () => {
-      const data = await getUserApplications(user.id);
-      setApplications(data);
+    const fetchData = async () => {
+      const appsData = await getUserApplications(user.id);
+      setApplications(appsData);
+
+      if (user.type === "seller") {
+        const materialsData = await getUserMaterials(user.id);
+        setMaterials(materialsData);
+      }
     };
 
-    fetchApplications();
+    fetchData();
   }, [user, router]);
 
   if (!user) {
@@ -57,7 +65,13 @@ export default function ProfilePage() {
               <CardTitle className="mt-4">{user.name}</CardTitle>
               <CardDescription>{user.email}</CardDescription>
               <Badge className="mt-2">
-                {user.type === "buyer" ? "Покупатель" : "Продавец"}
+                {user.type === "staff"
+                  ? user.role === "admin"
+                    ? "Администратор"
+                    : "Менеджер"
+                  : user.type === "buyer"
+                  ? "Покупатель"
+                  : "Продавец"}
               </Badge>
             </CardHeader>
             <CardContent>
@@ -69,13 +83,36 @@ export default function ProfilePage() {
                 >
                   Редактировать профиль
                 </Button>
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => router.push("/profile/applications")}
-                >
-                  Мои заявки
-                </Button>
+
+                {user.type === "buyer" ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="justify-start"
+                      onClick={() => router.push("/profile/applications")}
+                    >
+                      Мои заявки на покупку
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      className="justify-start"
+                      onClick={() => router.push("/profile/materials")}
+                    >
+                      Мои материалы
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="justify-start"
+                      onClick={() => router.push("/profile/applications")}
+                    >
+                      Заявки на мои материалы
+                    </Button>
+                  </>
+                )}
+
                 <Button
                   variant="outline"
                   className="justify-start"
@@ -99,7 +136,14 @@ export default function ProfilePage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="overview">Обзор</TabsTrigger>
-              <TabsTrigger value="applications">Заявки</TabsTrigger>
+              {user.type === "buyer" ? (
+                <TabsTrigger value="applications">Мои заявки</TabsTrigger>
+              ) : (
+                <>
+                  <TabsTrigger value="materials">Мои материалы</TabsTrigger>
+                  <TabsTrigger value="applications">Заявки</TabsTrigger>
+                </>
+              )}
               <TabsTrigger value="stats">Статистика</TabsTrigger>
             </TabsList>
 
@@ -108,46 +152,90 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle>Добро пожаловать, {user.name}!</CardTitle>
                   <CardDescription>
-                    Это ваш личный кабинет, где вы можете управлять своими
-                    заявками и настройками.
+                    Это ваш личный кабинет, где вы можете{" "}
+                    {user.type === "buyer"
+                      ? "искать и покупать материалы"
+                      : "размещать материалы на продажу и управлять заявками"}
+                    .
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                          Активные заявки
-                        </CardTitle>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {
-                            applications.filter(
-                              (app) => app.status === "active"
-                            ).length
-                          }
-                        </div>
-                      </CardContent>
-                    </Card>
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                          Завершенные сделки
-                        </CardTitle>
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {
-                            applications.filter(
-                              (app) => app.status === "completed"
-                            ).length
-                          }
-                        </div>
-                      </CardContent>
-                    </Card>
+                    {user.type === "buyer" ? (
+                      <>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Активные заявки
+                            </CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                applications.filter(
+                                  (app) => app.status === "active"
+                                ).length
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Завершенные покупки
+                            </CardTitle>
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                applications.filter(
+                                  (app) => app.status === "completed"
+                                ).length
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    ) : (
+                      <>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Активные материалы
+                            </CardTitle>
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                materials.filter(
+                                  (mat) => mat.status === "active"
+                                ).length
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Заявки на материалы
+                            </CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                applications.filter(
+                                  (app) => app.status === "active"
+                                ).length
+                              }
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </>
+                    )}
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
@@ -179,12 +267,120 @@ export default function ProfilePage() {
               </Card>
             </TabsContent>
 
+            {user.type === "seller" && (
+              <TabsContent value="materials">
+                <Card>
+                  <CardHeader className="flex justify-between items-center">
+                    <div>
+                      <CardTitle>Мои материалы</CardTitle>
+                      <CardDescription>
+                        Управляйте своими материалами на продажу
+                      </CardDescription>
+                    </div>
+                    <Button
+                      onClick={() => router.push("/profile/materials/new")}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Добавить материал
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {materials.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {materials.map((material) => (
+                          <Card key={material.id} className="overflow-hidden">
+                            <div
+                              className="h-40 bg-muted bg-cover bg-center"
+                              style={{
+                                backgroundImage: `url(${material.image})`,
+                              }}
+                            />
+                            <CardHeader className="p-4">
+                              <div className="flex justify-between">
+                                <CardTitle className="text-lg">
+                                  {material.name}
+                                </CardTitle>
+                                <Badge
+                                  variant={
+                                    material.status === "active"
+                                      ? "default"
+                                      : material.status === "pending"
+                                      ? "secondary"
+                                      : "destructive"
+                                  }
+                                >
+                                  {material.status === "active"
+                                    ? "Активен"
+                                    : material.status === "pending"
+                                    ? "На проверке"
+                                    : "Отклонен"}
+                                </Badge>
+                              </div>
+                              <CardDescription>{material.type}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                              <div className="flex justify-between items-center">
+                                <span className="font-bold">
+                                  {material.price} ₽/кг
+                                </span>
+                                <span>Количество: {material.quantity} кг</span>
+                              </div>
+                            </CardContent>
+                            <div className="p-4 border-t flex justify-end space-x-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  router.push(
+                                    `/profile/materials/edit/${material.id}`
+                                  )
+                                }
+                              >
+                                Редактировать
+                              </Button>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() =>
+                                  router.push(`/marketplace/${material.id}`)
+                                }
+                              >
+                                Просмотр
+                              </Button>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-10">
+                        <p className="text-muted-foreground">
+                          У вас пока нет материалов на продажу
+                        </p>
+                        <Button
+                          className="mt-4"
+                          onClick={() => router.push("/profile/materials/new")}
+                        >
+                          Добавить материал
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+
             <TabsContent value="applications">
               <Card>
                 <CardHeader>
-                  <CardTitle>Ваши заявки</CardTitle>
+                  <CardTitle>
+                    {user.type === "buyer"
+                      ? "Ваши заявки на покупку"
+                      : "Заявки на ваши материалы"}
+                  </CardTitle>
                   <CardDescription>
-                    Управляйте своими заявками на покупку или продажу вторсырья
+                    {user.type === "buyer"
+                      ? "Управляйте своими заявками на покупку вторсырья"
+                      : "Просмотрите заявки от покупателей на ваши материалы"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -201,8 +397,6 @@ export default function ProfilePage() {
                                 variant={
                                   application.status === "active"
                                     ? "default"
-                                    : application.status === "completed"
-                                    ? "secondary"
                                     : "secondary"
                                 }
                                 className={
@@ -249,25 +443,40 @@ export default function ProfilePage() {
                                   Цена:{" "}
                                 </span>
                                 <span className="text-sm font-medium">
-                                  {application.price} ₸/кг
+                                  {application.price} ₽/кг
                                 </span>
                               </div>
                             </div>
                           </CardContent>
+                          {user.type === "seller" &&
+                            application.status === "active" && (
+                              <div className="p-4 border-t flex justify-end space-x-2">
+                                <Button variant="outline" size="sm">
+                                  Отклонить
+                                </Button>
+                                <Button variant="default" size="sm">
+                                  Принять
+                                </Button>
+                              </div>
+                            )}
                         </Card>
                       ))}
                     </div>
                   ) : (
                     <div className="text-center py-10">
                       <p className="text-muted-foreground">
-                        У вас пока нет заявок
+                        {user.type === "buyer"
+                          ? "У вас пока нет заявок"
+                          : "На ваши материалы пока нет заявок"}
                       </p>
-                      <Button
-                        className="mt-4"
-                        onClick={() => router.push("/marketplace")}
-                      >
-                        Перейти на витрину
-                      </Button>
+                      {user.type === "buyer" && (
+                        <Button
+                          className="mt-4"
+                          onClick={() => router.push("/marketplace")}
+                        >
+                          Перейти на витрину
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardContent>

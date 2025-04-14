@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { getMaterialById } from "@/services/material-service";
 import { createApplication } from "@/services/application-service";
+import { createApplicationNotification } from "@/services/notification-service";
 import type { MaterialType } from "@/types/material";
 import {
   Heart,
@@ -70,7 +71,7 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
     setIsSubmitting(true);
 
     try {
-      await createApplication({
+      const application = await createApplication({
         title: `Заявка на ${
           material.dealType === "buy" ? "продажу" : "покупку"
         } ${material.name}`,
@@ -84,6 +85,13 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
         price: material.price,
         userId: user.id,
       });
+
+      await createApplicationNotification(
+        application.id,
+        application.title,
+        user.id,
+        material.userId
+      );
 
       toast({
         title: "Заявка создана",

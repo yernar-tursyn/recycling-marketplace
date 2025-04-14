@@ -1,12 +1,10 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/context/auth-context"
-import { useNotifications } from "@/context/notifications-context"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+"use client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
+import { useNotifications } from "@/context/notifications-context";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,26 +13,19 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Bell, LogOut, Settings, User } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+} from "@/components/ui/dropdown-menu";
+import { Bell, LogOut, Settings, User, ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export function UserNav() {
-  const { user, logout } = useAuth()
-  const { notifications } = useNotifications()
-  const router = useRouter()
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  useEffect(() => {
-    if (notifications) {
-      setUnreadCount(notifications.filter((n) => !n.read).length)
-    }
-  }, [notifications])
+  const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
+  const router = useRouter();
 
   const handleLogout = () => {
-    logout()
-    router.push("/")
-  }
+    logout();
+    router.push("/");
+  };
 
   if (!user) {
     return (
@@ -48,7 +39,7 @@ export function UserNav() {
           <Button size="sm">Регистрация</Button>
         </Link>
       </div>
-    )
+    );
   }
 
   return (
@@ -76,7 +67,17 @@ export function UserNav() {
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
               <p className="text-sm font-medium leading-none">{user.name}</p>
-              <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+              <p className="text-xs leading-none text-muted-foreground">
+                {user.email}
+              </p>
+              {user.role !== "user" && (
+                <div className="flex items-center mt-1">
+                  <ShieldCheck className="h-3 w-3 mr-1 text-primary" />
+                  <p className="text-xs text-primary">
+                    {user.role === "admin" ? "Администратор" : "Менеджер"}
+                  </p>
+                </div>
+              )}
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -87,22 +88,61 @@ export function UserNav() {
                 <span>Профиль</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/profile/applications">
-                <span>Мои заявки</span>
-              </Link>
-            </DropdownMenuItem>
+
+            {user.type === "buyer" ? (
+              <DropdownMenuItem asChild>
+                <Link href="/profile/applications">
+                  <span>Мои заявки</span>
+                </Link>
+              </DropdownMenuItem>
+            ) : (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile/materials">
+                    <span>Мои материалы</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile/applications">
+                    <span>Заявки на материалы</span>
+                  </Link>
+                </DropdownMenuItem>
+              </>
+            )}
+
             <DropdownMenuItem asChild>
               <Link href="/profile/favorites">
                 <span>Избранное</span>
               </Link>
             </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link href="/notifications">
+                <Bell className="mr-2 h-4 w-4" />
+                <span>Уведомления</span>
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="ml-auto">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Link>
+            </DropdownMenuItem>
+
             <DropdownMenuItem asChild>
               <Link href="/profile/settings">
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Настройки</span>
               </Link>
             </DropdownMenuItem>
+
+            {(user.role === "admin" || user.role === "manager") && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <ShieldCheck className="mr-2 h-4 w-4" />
+                  <span>Администрирование</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>
@@ -112,6 +152,5 @@ export function UserNav() {
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  )
+  );
 }
-

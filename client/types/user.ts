@@ -10,4 +10,7 @@ export interface UserType {
   location: string;
   createdAt: string;
   bio?: string;
+  phone?: string;
+  company?: string;
+  twoFactorEnabled?: boolean;
 }

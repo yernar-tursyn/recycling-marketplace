@@ -63,6 +63,12 @@ export const getApplications = async () => {
   return getApplicationsFromStorage();
 };
 
+export const getAllApplications = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 300));
+
+  return getApplicationsFromStorage();
+};
+
 export const getApplicationById = async (id: string) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -123,6 +129,24 @@ export const updateApplication = async (
   saveApplications(applications);
 
   return updatedApplication;
+};
+
+export const updateApplicationStatus = async (id: string, status: string) => {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const applications = getApplicationsFromStorage();
+  const index = applications.findIndex((a) => a.id === id);
+
+  if (index === -1) {
+    throw new Error("Application not found");
+  }
+
+  applications[index].status = status;
+  applications[index].updatedAt = new Date().toISOString();
+
+  saveApplications(applications);
+
+  return applications[index];
 };
 
 export const deleteApplication = async (id: string) => {

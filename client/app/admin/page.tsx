@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
 import {
   Card,
   CardContent,
@@ -11,8 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/auth-context";
+import { getAllUsers } from "@/services/user-service";
+import { getAllMaterials } from "@/services/material-service";
+import { getAllApplications } from "@/services/application-service";
+import {
+  getAdminLogsHistory,
+  type AdminLogEntry,
+} from "@/services/admin-service";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -22,382 +26,214 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { getAllUsers, updateUserStatus } from "@/services/user-service";
-import {
-  getAllMaterials,
-  updateMaterialStatus,
-} from "@/services/material-service";
-import type { UserType } from "@/types/user";
-import type { MaterialType } from "@/types/material";
-import { Search, UserCog, Package } from "lucide-react";
+import { ShieldAlert, Users, Package, FileText, Clock } from "lucide-react";
 
-export default function AdminPage() {
+export default function AdminDashboardPage() {
   const { user } = useAuth();
-  const router = useRouter();
-  const [users, setUsers] = useState<UserType[]>([]);
-  const [materials, setMaterials] = useState<MaterialType[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(
-    null
-  );
-  const [userDialogOpen, setUserDialogOpen] = useState(false);
-  const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
+  const [usersCount, setUsersCount] = useState(0);
+  const [materialsCount, setMaterialsCount] = useState(0);
+  const [applicationsCount, setApplicationsCount] = useState(0);
+  const [recentLogs, setRecentLogs] = useState<AdminLogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || user.role !== "admin") {
-      router.push("/");
-      return;
-    }
-
     const fetchData = async () => {
-      const usersData = await getAllUsers();
-      const materialsData = await getAllMaterials();
-      setUsers(usersData);
-      setMaterials(materialsData);
+      try {
+        const [users, materials, applications, logs] = await Promise.all([
+          getAllUsers(),
+          getAllMaterials(),
+          getAllApplications(),
+          getAdminLogsHistory(10),
+        ]);
+
+        setUsersCount(users.length);
+        setMaterialsCount(materials.length);
+        setApplicationsCount(applications.length);
+        setRecentLogs(logs);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchData();
-  }, [user, router]);
+  }, []);
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredMaterials = materials.filter(
-    (material) =>
-      material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      material.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleUserStatusChange = async (userId: string, status: string) => {
-    await updateUserStatus(userId, status);
-    setUsers(
-      users.map((user) => (user.id === userId ? { ...user, status } : user))
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">Загрузка данных...</p>
+      </div>
     );
-    setUserDialogOpen(false);
-  };
-
-  const handleMaterialStatusChange = async (
-    materialId: string,
-    status: string
-  ) => {
-    await updateMaterialStatus(materialId, status);
-    setMaterials(
-      materials.map((material) =>
-        material.id === materialId ? { ...material, status } : material
-      )
-    );
-    setMaterialDialogOpen(false);
-  };
-
-  if (!user || user.role !== "admin") {
-    return null;
   }
 
   return (
-    <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-6">Панель администратора</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Панель управления</h1>
+        <Badge variant={user?.role === "admin" ? "destructive" : "default"}>
+          {user?.role === "admin" ? "Администратор" : "Менеджер"}
+        </Badge>
+      </div>
 
-      <Tabs defaultValue="users">
-        <TabsList className="mb-4">
-          <TabsTrigger value="users">Пользователи</TabsTrigger>
-          <TabsTrigger value="materials">Материалы</TabsTrigger>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Пользователи</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{usersCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Зарегистрированных пользователей
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Материалы</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{materialsCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Опубликованных материалов
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Заявки</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{applicationsCount}</div>
+            <p className="text-xs text-muted-foreground">Активных заявок</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Безопасность</CardTitle>
+            <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">Активна</div>
+            <p className="text-xs text-muted-foreground">Система мониторинга</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="activity">
+        <TabsList>
+          <TabsTrigger value="activity">Активность</TabsTrigger>
+          <TabsTrigger value="security">Безопасность</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="users">
+        <TabsContent value="activity" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <UserCog className="mr-2 h-5 w-5" />
-                    Управление пользователями
-                  </CardTitle>
-                  <CardDescription>
-                    Всего пользователей: {users.length}
-                  </CardDescription>
-                </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Поиск пользователей..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
+              <CardTitle>Последние действия</CardTitle>
+              <CardDescription>
+                История действий администраторов и менеджеров
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Имя</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Тип</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead>Дата регистрации</TableHead>
-                    <TableHead>Действия</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {user.type === "buyer" ? "Покупатель" : "Продавец"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.status === "active" ? "default" : "destructive"
-                          }
-                        >
-                          {user.status === "active"
-                            ? "Активен"
-                            : "Заблокирован"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setUserDialogOpen(true);
-                          }}
-                        >
-                          Редактировать
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Редактирование пользователя</DialogTitle>
-                <DialogDescription>
-                  Изменение статуса пользователя {selectedUser?.name}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="user-status" className="text-right">
-                    Статус
-                  </Label>
-                  <Select
-                    value={selectedUser?.status}
-                    onValueChange={(value) => {
-                      if (selectedUser) {
-                        setSelectedUser({ ...selectedUser, status: value });
-                      }
-                    }}
-                  >
-                    <SelectTrigger id="user-status" className="col-span-3">
-                      <SelectValue placeholder="Выберите статус" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Активен</SelectItem>
-                      <SelectItem value="blocked">Заблокирован</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setUserDialogOpen(false)}
-                >
-                  Отмена
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (selectedUser) {
-                      handleUserStatusChange(
-                        selectedUser.id,
-                        selectedUser.status
-                      );
-                    }
-                  }}
-                >
-                  Сохранить
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-
-        <TabsContent value="materials">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center">
-                    <Package className="mr-2 h-5 w-5" />
-                    Управление материалами
-                  </CardTitle>
-                  <CardDescription>
-                    Всего материалов: {materials.length}
-                  </CardDescription>
-                </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Поиск материалов..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Название</TableHead>
-                    <TableHead>Тип</TableHead>
-                    <TableHead>Цена</TableHead>
-                    <TableHead>Статус</TableHead>
+                    <TableHead>Время</TableHead>
                     <TableHead>Пользователь</TableHead>
-                    <TableHead>Действия</TableHead>
+                    <TableHead>Действие</TableHead>
+                    <TableHead>Детали</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMaterials.map((material) => (
-                    <TableRow key={material.id}>
-                      <TableCell>{material.name}</TableCell>
-                      <TableCell>{material.type}</TableCell>
-                      <TableCell>{material.price} ₸/кг</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            material.status === "active"
-                              ? "default"
-                              : material.status === "pending"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                        >
-                          {material.status === "active"
-                            ? "Активно"
-                            : material.status === "pending"
-                            ? "На проверке"
-                            : "Отклонено"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{material.userName}</TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedMaterial(material);
-                            setMaterialDialogOpen(true);
-                          }}
-                        >
-                          Редактировать
-                        </Button>
+                  {recentLogs.length > 0 ? (
+                    recentLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            {new Date(log.timestamp).toLocaleString()}
+                          </div>
+                        </TableCell>
+                        <TableCell>{log.userName}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              log.action === "login" ? "default" : "secondary"
+                            }
+                          >
+                            {log.action === "login"
+                              ? "Вход"
+                              : log.action === "logout"
+                              ? "Выход"
+                              : log.action}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{log.details}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center">
+                        Нет записей
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
-
-          <Dialog
-            open={materialDialogOpen}
-            onOpenChange={setMaterialDialogOpen}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Редактирование материала</DialogTitle>
-                <DialogDescription>
-                  Изменение статуса материала {selectedMaterial?.name}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="material-status" className="text-right">
-                    Статус
-                  </Label>
-                  <Select
-                    value={selectedMaterial?.status}
-                    onValueChange={(value) => {
-                      if (selectedMaterial) {
-                        setSelectedMaterial({
-                          ...selectedMaterial,
-                          status: value,
-                        });
-                      }
-                    }}
-                  >
-                    <SelectTrigger id="material-status" className="col-span-3">
-                      <SelectValue placeholder="Выберите статус" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="active">Активно</SelectItem>
-                      <SelectItem value="pending">На проверке</SelectItem>
-                      <SelectItem value="rejected">Отклонено</SelectItem>
-                    </SelectContent>
-                  </Select>
+        </TabsContent>
+        <TabsContent value="security" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Настройки безопасности</CardTitle>
+              <CardDescription>
+                Управление параметрами безопасности системы
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium">
+                      Двухфакторная аутентификация
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      Обязательна для всех администраторов и менеджеров
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <Badge>Включена</Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium">Время сессии</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Автоматический выход после периода неактивности
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <Badge>30 минут</Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-medium">Журналирование</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Запись всех действий администраторов и менеджеров
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-end">
+                    <Badge>Включено</Badge>
+                  </div>
                 </div>
               </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setMaterialDialogOpen(false)}
-                >
-                  Отмена
-                </Button>
-                <Button
-                  onClick={() => {
-                    if (selectedMaterial) {
-                      handleMaterialStatusChange(
-                        selectedMaterial.id,
-                        selectedMaterial.status
-                      );
-                    }
-                  }}
-                >
-                  Сохранить
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

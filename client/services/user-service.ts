@@ -4,7 +4,68 @@ const USERS_KEY = "eco_market_users";
 
 const getUsers = (): UserType[] => {
   const users = localStorage.getItem(USERS_KEY);
-  return users ? JSON.parse(users) : [];
+
+  if (users) {
+    return JSON.parse(users);
+  }
+
+  const initialUsers = [
+    {
+      id: "admin1",
+      name: "Администратор",
+      email: "admin@ecomarket.ru",
+      password: "admin123",
+      type: "seller",
+      role: "admin",
+      status: "active",
+      avatar: "",
+      location: "Москва",
+      createdAt: new Date().toISOString(),
+      bio: "Главный администратор системы",
+    },
+    {
+      id: "manager1",
+      name: "Менеджер",
+      email: "manager@ecomarket.ru",
+      password: "manager123",
+      type: "seller",
+      role: "manager",
+      status: "active",
+      avatar: "",
+      location: "Санкт-Петербург",
+      createdAt: new Date().toISOString(),
+      bio: "Менеджер по работе с клиентами",
+    },
+    {
+      id: "user1",
+      name: "Иван Петров",
+      email: "ivan@example.com",
+      password: "password123",
+      type: "seller",
+      role: "user",
+      status: "active",
+      avatar: "",
+      location: "Москва",
+      createdAt: new Date().toISOString(),
+      bio: "Продавец вторсырья",
+    },
+    {
+      id: "user2",
+      name: "Анна Иванова",
+      email: "anna@example.com",
+      password: "password123",
+      type: "buyer",
+      role: "user",
+      status: "active",
+      avatar: "",
+      location: "Санкт-Петербург",
+      createdAt: new Date().toISOString(),
+      bio: "Покупатель вторсырья",
+    },
+  ];
+
+  localStorage.setItem(USERS_KEY, JSON.stringify(initialUsers));
+  return initialUsers;
 };
 
 const saveUsers = (users: UserType[]) => {
@@ -74,17 +135,21 @@ export const updateUserStatus = async (id: string, status: string) => {
   return userWithoutPassword;
 };
 
-export const deleteUser = async (id: string) => {
+export const updateUserRole = async (id: string, role: string) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const users = getUsers();
-  const filteredUsers = users.filter((u) => u.id !== id);
+  const index = users.findIndex((u) => u.id === id);
 
-  if (users.length === filteredUsers.length) {
+  if (index === -1) {
     throw new Error("User not found");
   }
 
-  saveUsers(filteredUsers);
+  users[index].role = role;
 
-  return { success: true };
+  saveUsers(users);
+
+  const { password, ...userWithoutPassword } = users[index];
+
+  return userWithoutPassword;
 };
