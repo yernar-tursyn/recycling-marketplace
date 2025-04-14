@@ -13,7 +13,7 @@ export const register = [
   validate,
   async (req: Request, res: Response): Promise<Response> => {
     try {
-      const { email, password, name } = req.body as UserInput;
+      const { email, password, name, userType } = req.body as UserInput;
 
       const existingUser = await UserModel.findByEmail(email);
       if (existingUser) {
@@ -22,7 +22,12 @@ export const register = [
           .json({ error: "Пользователь с таким email уже существует" });
       }
 
-      const userId = await UserModel.create({ email, password, name });
+      const userId = await UserModel.create({
+        email,
+        password,
+        name,
+        userType,
+      });
       const user = await UserModel.findById(userId);
 
       if (!user) {
@@ -88,6 +93,7 @@ export const getProfile = async (
       id: user.id,
       email: user.email,
       name: user.name,
+      userType: user.userType, // Добавили userType
     };
 
     return res.json(responseData);

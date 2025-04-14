@@ -7,7 +7,7 @@ interface User {
   email: string;
   password: string;
   name: string;
-  role: string;
+  userType: string; // Заменили role на userType
   created_at: Date;
   updated_at: Date;
 }
@@ -16,15 +16,20 @@ interface UserInput {
   email: string;
   password: string;
   name: string;
-  role?: string;
+  userType?: string; // Заменили role на userType
 }
 
 class UserModel {
   static async create(userData: UserInput): Promise<number> {
     const hashedPassword = await hashPassword(userData.password);
     const [result] = await db.execute(
-      "INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)",
-      [userData.email, hashedPassword, userData.name, userData.role || "buyer"]
+      "INSERT INTO users (email, password, name, userType) VALUES (?, ?, ?, ?)", // Изменили role на userType
+      [
+        userData.email,
+        hashedPassword,
+        userData.name,
+        userData.userType || "buyer",
+      ] // Используем userType
     );
     return (result as mysql.ResultSetHeader).insertId;
   }
@@ -38,7 +43,7 @@ class UserModel {
 
   static async findById(id: number): Promise<Omit<User, "password"> | null> {
     const [rows] = await db.execute(
-      "SELECT id, email, name, role FROM users WHERE id = ?",
+      "SELECT id, email, name, userType FROM users WHERE id = ?", // Изменили role на userType
       [id]
     );
     return (rows as Omit<User, "password">[])[0] || null;

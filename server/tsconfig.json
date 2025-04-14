@@ -9,8 +9,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    "typeRoots": ["./src/types"]
+    "typeRoots": ["types"]
   },
-  "include": ["src/**/*", "src/server.ts"],
+  "include": ["src/**/*", "src/server.ts", "types/*"],
   "exclude": ["node_modules"]
 }

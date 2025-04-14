@@ -1,3 +1,4 @@
+/// <reference path="../types/express.d.ts" />
 import dotenv from "dotenv";
 import path from "path";
 

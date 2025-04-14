@@ -2,10 +2,7 @@ import { body, ValidationChain, validationResult } from "express-validator";
 import { Request, Response, NextFunction } from "express";
 
 export const registerValidator: ValidationChain[] = [
-  body("email")
-    .isEmail()
-    .withMessage("Пожалуйста, введите корректный email")
-    .normalizeEmail(),
+  body("email").isEmail().withMessage("Пожалуйста, введите корректный email"),
   body("password")
     .isLength({ min: 6 })
     .withMessage("Пароль должен содержать минимум 6 символов"),
