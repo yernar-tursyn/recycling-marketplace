@@ -73,24 +73,40 @@ export default function LoginPage() {
     console.log("[Login Page] Submitting login form for:", email);
 
     try {
-      const success = await login(email, password);
-      console.log("[Login Page] Login result:", success);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/users/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
-      if (success) {
-        toast({
-          title: "Успешный вход",
-          description: "Вы успешно вошли в систему",
-        });
-        console.log("[Login Page] Redirecting to profile");
-        router.push("/profile");
-      } else {
-        console.log("[Login Page] Login failed");
+      if (!response.ok) {
+        const data = await response.json();
         toast({
           variant: "destructive",
           title: "Ошибка входа",
-          description: "Неверный email или пароль",
+          description: data.error || "Неверный email или пароль",
         });
+        console.log("[Login Page] Login failed");
+        return;
       }
+
+      const data = await response.json();
+      console.log("[Login Page] Login success, received token:", data.token);
+
+      // Сохраняем токен в localStorage или cookie
+      localStorage.setItem("token", data.token);
+
+      toast({
+        title: "Успешный вход",
+        description: "Вы успешно вошли в систему",
+      });
+
+      router.push("/profile"); // Редирект на профиль
     } catch (error) {
       console.log("[Login Page] Login error:", error);
       toast({

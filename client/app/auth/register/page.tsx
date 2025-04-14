@@ -1,11 +1,9 @@
 "use client";
 
 import type React from "react";
-
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +34,6 @@ export default function RegisterPage() {
     confirmPassword?: string;
   }>({});
 
-  const { register } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -79,20 +76,46 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    try {
-      const success = await register(name, email, password, userType);
+    console.log(
+      "Отправка данных:",
+      JSON.stringify({
+        email,
+        password,
+        name,
+        userType, // добавил userType
+      })
+    );
 
-      if (success) {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/users/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+            name,
+            userType, // добавил userType
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
         toast({
           title: "Регистрация успешна",
           description: "Вы успешно зарегистрировались",
         });
-        router.push("/profile");
+        router.push("/auth/login");
       } else {
         toast({
           variant: "destructive",
           title: "Ошибка регистрации",
-          description: "Пользователь с таким email уже существует",
+          description: data.message || "Что-то пошло не так",
         });
       }
     } catch (error) {
@@ -132,6 +155,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-destructive">{errors.name}</p>
                 )}
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -146,6 +170,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-destructive">{errors.email}</p>
                 )}
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="password">Пароль</Label>
                 <div className="relative">
@@ -178,6 +203,7 @@ export default function RegisterPage() {
                   <p className="text-sm text-destructive">{errors.password}</p>
                 )}
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="confirmPassword">Подтверждение пароля</Label>
                 <Input
@@ -194,30 +220,36 @@ export default function RegisterPage() {
                   </p>
                 )}
               </div>
+
               <div className="grid gap-2">
                 <Label>Тип пользователя</Label>
-                <RadioGroup value={userType} onValueChange={setUserType}>
+                <RadioGroup
+                  defaultValue="buyer"
+                  value={userType}
+                  onValueChange={(value) => setUserType(value)}
+                  className="flex gap-4"
+                >
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="buyer" id="buyer" />
-                    <Label htmlFor="buyer">Покупатель (ищу вторсырье)</Label>
+                    <Label htmlFor="buyer">Покупатель</Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="seller" id="seller" />
-                    <Label htmlFor="seller">Продавец (сдаю вторсырье)</Label>
+                    <Label htmlFor="seller">Продавец</Label>
                   </div>
                 </RadioGroup>
               </div>
             </CardContent>
-            <CardFooter className="flex flex-col">
-              <Button className="w-full" type="submit" disabled={isLoading}>
+            <CardFooter className="flex flex-col space-y-4">
+              <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Регистрация..." : "Зарегистрироваться"}
               </Button>
-              <div className="mt-4 text-center text-sm">
+              <p className="text-sm text-muted-foreground">
                 Уже есть аккаунт?{" "}
-                <Link href="/auth/login" className="underline">
+                <Link href="/login" className="underline">
                   Войти
                 </Link>
-              </div>
+              </p>
             </CardFooter>
           </form>
         </Card>
