@@ -58,11 +58,6 @@ export const login = async (req: Request, res: Response): Promise<Response> => {
 
     return res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-      },
     });
   } catch (error) {
     console.error("Ошибка при входе:", error);
