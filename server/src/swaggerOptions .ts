@@ -29,7 +29,4 @@ const options: swaggerJSDoc.Options = {
 
 const swaggerSpec = swaggerJSDoc(options);
 
-// 👇 Добавь временно, чтобы посмотреть что он видит
-console.log(JSON.stringify((swaggerSpec as any).paths, null, 2));
-
 export default swaggerSpec;
