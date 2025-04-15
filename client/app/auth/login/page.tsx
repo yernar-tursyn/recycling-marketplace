@@ -107,6 +107,7 @@ export default function LoginPage() {
       });
 
       router.push("/profile"); // Редирект на профиль
+
     } catch (error) {
       console.log("[Login Page] Login error:", error);
       toast({
