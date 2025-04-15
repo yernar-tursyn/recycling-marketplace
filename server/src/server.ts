@@ -1,10 +1,6 @@
 /// <reference path="../types/express.d.ts" />
 import dotenv from "dotenv";
 import path from "path";
-import express from "express";
-
-import swaggerUi from "swagger-ui-express";
-import swaggerJsdoc from "swagger-jsdoc";
 
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
