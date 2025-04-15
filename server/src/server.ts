@@ -1,15 +1,13 @@
 /// <reference path="../types/express.d.ts" />
 import dotenv from "dotenv";
 import path from "path";
+import express from "express";
 
-// 1. Первым делом загружаем конфиг из .env
+import swaggerUi from "swagger-ui-express";
+import swaggerJsdoc from "swagger-jsdoc";
+
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-// 2. Проверяем загрузку переменных (для отладки)
-console.log("DB_HOST:", process.env.DB_HOST);
-console.log("DB_PORT:", process.env.DB_PORT);
-
-// 3. Импортируем остальные модули
 import app from "./app";
 import db from "./config/db";
 
@@ -36,8 +34,11 @@ async function startServer() {
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📘 Swagger docs: http://localhost:${PORT}/api-docs`);
     console.log(`🔗 Database: ${process.env.DB_HOST}:${process.env.DB_PORT}`);
   });
+
+  console.log(__dirname);
 }
 
 startServer();

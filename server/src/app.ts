@@ -5,10 +5,16 @@ import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/authRoutes";
 import { Request, Response, NextFunction } from "express";
 
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./swaggerOptions "; // путь зависит от твоей структуры проекта
+
 // Импортируем маршруты для материалов
 import materialRoutes from "./routes/materialRoutes";
 
 const app = express();
+
+//swagger
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Middleware
 app.use(helmet());
