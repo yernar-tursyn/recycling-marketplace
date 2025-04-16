@@ -35,3 +35,7 @@ export const login = async (email: string, password: string) => {
 export const logout = async () => {
   localStorage.removeItem("authToken");
 };
+
+export const deleteUser = async (userId: string) => {
+  // Реализация удаления пользователя
+};
