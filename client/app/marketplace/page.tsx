@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -26,8 +25,19 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Heart, Search } from "lucide-react";
 import { useFavorites } from "@/context/favorites-context";
-import { getMaterials } from "@/services/material-service";
 import type { MaterialType } from "@/types/material";
+
+export const MATERIAL_CATEGORIES = {
+  1: "Пластик",
+  2: "Макулатура",
+  3: "Стекло",
+  4: "Металл",
+  5: "Кожа/резина/ветошь",
+  6: "Органика",
+  7: "Отходы",
+} as const;
+
+export type MaterialCategory = keyof typeof MATERIAL_CATEGORIES;
 
 export default function MarketplacePage() {
   const [materials, setMaterials] = useState<MaterialType[]>([]);
@@ -35,16 +45,35 @@ export default function MarketplacePage() {
     []
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [materialType, setMaterialType] = useState("all");
+  const [category, setCategory] = useState<string>("all");
   const [priceRange, setPriceRange] = useState([0, 1000]);
+  const [deal_type, setdeal_type] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { favorites, toggleFavorite } = useFavorites();
   const router = useRouter();
 
   useEffect(() => {
     const fetchMaterials = async () => {
-      const data = await getMaterials();
-      setMaterials(data);
-      setFilteredMaterials(data);
+      try {
+        setIsLoading(true);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/materials`
+        );
+
+        if (!response.ok) {
+          throw new Error("Не удалось загрузить материалы");
+        }
+
+        const data = await response.json();
+        setMaterials(data);
+        setFilteredMaterials(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Произошла ошибка");
+        console.error("Ошибка при загрузке материалов:", err);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchMaterials();
@@ -58,13 +87,22 @@ export default function MarketplacePage() {
       result = result.filter(
         (material) =>
           material.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          material.description.toLowerCase().includes(searchQuery.toLowerCase())
+          (material.description &&
+            material.description
+              .toLowerCase()
+              .includes(searchQuery.toLowerCase()))
       );
     }
 
-    // Filter by material type
-    if (materialType !== "all") {
-      result = result.filter((material) => material.type === materialType);
+    // Filter by category
+    if (category !== "all") {
+      const categoryNum = parseInt(category);
+      result = result.filter((material) => material.category === categoryNum);
+    }
+
+    // Filter by deal type
+    if (deal_type !== "all") {
+      result = result.filter((material) => material.deal_type === deal_type);
     }
 
     // Filter by price range
@@ -74,17 +112,32 @@ export default function MarketplacePage() {
     );
 
     setFilteredMaterials(result);
-  }, [searchQuery, materialType, priceRange, materials]);
+  }, [searchQuery, category, deal_type, priceRange, materials]);
 
-  const handleMaterialClick = (id: string) => {
+  const handleMaterialClick = (id: number) => {
     router.push(`/marketplace/${id}`);
   };
 
-  const handleFavoriteClick = (e: React.MouseEvent, id: string) => {
-    // Останавливаем всплытие события, чтобы не срабатывал клик по карточке
+  const handleFavoriteClick = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    toggleFavorite(id);
+    toggleFavorite(id.toString());
   };
+
+  if (isLoading) {
+    return (
+      <div className="container py-10">
+        <p>Загрузка материалов...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-10">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-10">
@@ -98,24 +151,46 @@ export default function MarketplacePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Тип материала</label>
-                <Select value={materialType} onValueChange={setMaterialType}>
+                <label className="text-sm font-medium">Категория</label>
+                <Select
+                  value={category}
+                  onValueChange={(value) => setCategory(value)}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Выберите тип" />
+                    <SelectValue placeholder="Все категории" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Все типы</SelectItem>
-                    <SelectItem value="plastic">Пластик</SelectItem>
-                    <SelectItem value="paper">Бумага</SelectItem>
-                    <SelectItem value="glass">Стекло</SelectItem>
-                    <SelectItem value="metal">Металл</SelectItem>
-                    <SelectItem value="electronics">Электроника</SelectItem>
+                    <SelectItem value="all">Все категории</SelectItem>
+                    {Object.entries(MATERIAL_CATEGORIES).map(([key, value]) => (
+                      <SelectItem key={key} value={key}>
+                        {value}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Цена за кг (₸)</label>
+                <label className="text-sm font-medium">Тип сделки</label>
+                <Select
+                  value={deal_type}
+                  onValueChange={(value) => setdeal_type(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Все типы" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все типы</SelectItem>
+                    <SelectItem value="sell">Продажа</SelectItem>
+                    <SelectItem value="buy">Покупка</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Цена за {materials[0]?.unit || "кг"} (₸)
+                </label>
                 <div className="pt-5">
                   <Slider
                     defaultValue={[0, 1000]}
@@ -148,7 +223,10 @@ export default function MarketplacePage() {
                 />
               </div>
 
-              <Tabs defaultValue="all">
+              <Tabs
+                value={deal_type}
+                onValueChange={(value) => setdeal_type(value)}
+              >
                 <TabsList>
                   <TabsTrigger value="all">Все</TabsTrigger>
                   <TabsTrigger value="buy">Покупка</TabsTrigger>
@@ -160,10 +238,17 @@ export default function MarketplacePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredMaterials.length > 0 ? (
                 filteredMaterials.map((material) => (
-                  <Card key={material.id} className="overflow-hidden relative">
+                  <Card
+                    key={material.id}
+                    className="overflow-hidden relative hover:shadow-lg transition-shadow"
+                  >
                     <div
                       className="h-48 bg-muted bg-cover bg-center"
-                      style={{ backgroundImage: `url(${material.image})` }}
+                      style={{
+                        backgroundImage: material.image_url
+                          ? `url(${material.image_url})`
+                          : "none",
+                      }}
                     />
                     <CardHeader className="p-4">
                       <div className="flex justify-between items-start">
@@ -171,7 +256,13 @@ export default function MarketplacePage() {
                           <CardTitle className="text-lg">
                             {material.name}
                           </CardTitle>
-                          <CardDescription>{material.type}</CardDescription>
+                          <CardDescription>
+                            {
+                              MATERIAL_CATEGORIES[
+                                material.category as MaterialCategory
+                              ]
+                            }
+                          </CardDescription>
                         </div>
                         <Button
                           variant="ghost"
@@ -181,7 +272,7 @@ export default function MarketplacePage() {
                         >
                           <Heart
                             className={`h-5 w-5 ${
-                              favorites.includes(material.id)
+                              favorites.includes(material.id.toString())
                                 ? "fill-primary text-primary"
                                 : ""
                             }`}
@@ -191,18 +282,30 @@ export default function MarketplacePage() {
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <p className="text-sm line-clamp-2">
-                        {material.description}
+                        {material.description || "Описание отсутствует"}
                       </p>
+                      <div className="mt-2 text-sm">
+                        <p>
+                          <span className="font-medium">Количество:</span>{" "}
+                          {material.quantity} {material.unit}
+                        </p>
+                        <p>
+                          <span className="font-medium">Местоположение:</span>{" "}
+                          {material.location}
+                        </p>
+                      </div>
                     </CardContent>
                     <CardFooter className="p-4 flex justify-between">
                       <Badge
                         variant={
-                          material.type === "buy" ? "default" : "outline"
+                          material.deal_type === "buy" ? "default" : "outline"
                         }
                       >
-                        {material.type === "buy" ? "Покупка" : "Продажа"}
+                        {material.deal_type === "buy" ? "Покупка" : "Продажа"}
                       </Badge>
-                      <span className="font-bold">{material.price} ₸/кг</span>
+                      <span className="font-bold">
+                        {material.price} ₸/{material.unit}
+                      </span>
                     </CardFooter>
                     <div
                       className="absolute inset-0 cursor-pointer"
