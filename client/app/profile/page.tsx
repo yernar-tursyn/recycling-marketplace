@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
 import {
   Card,
   CardContent,
@@ -13,38 +12,156 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getUserApplications } from "@/services/application-service";
-import { getUserMaterials } from "@/services/material-service";
-import type { ApplicationType } from "@/types/application";
-import type { MaterialType } from "@/types/material";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, FileText, MapPin, Package, Plus } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+type UserType = {
+  id: string;
+  name: string;
+  email: string;
+  type: "buyer" | "seller" | "staff";
+  role?: "admin" | "manager";
+  avatar?: string;
+  location?: string;
+  createdAt: string;
+};
+
+type ApplicationType = {
+  id: string;
+  title: string;
+  description: string;
+  materialType: string;
+  quantity: number;
+  price: number;
+  status: "active" | "completed" | "pending";
+  createdAt: string;
+};
+
+type MaterialType = {
+  id: string;
+  name: string;
+  type: string;
+  price: number;
+  quantity: number;
+  status: "active" | "pending" | "rejected";
+  image: string;
+};
 
 export default function ProfilePage() {
-  const { user } = useAuth();
   const router = useRouter();
+  const [user, setUser] = useState<UserType | null>(null);
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
-
     const fetchData = async () => {
-      const appsData = await getUserApplications(user.id);
-      setApplications(appsData);
+      try {
+        // Получаем данные пользователя
+        const userResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/users/profile`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
 
-      if (user.type === "seller") {
-        const materialsData = await getUserMaterials(user.id);
-        setMaterials(materialsData);
+        if (!userResponse.ok) {
+          throw new Error("Не авторизован");
+        }
+
+        const userData = await userResponse.json();
+        setUser(userData);
+
+        // Получаем заявки пользователя
+        const appsResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/applications`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+
+        if (appsResponse.ok) {
+          const appsData = await appsResponse.json();
+          setApplications(appsData);
+        }
+
+        // Если продавец - получаем его материалы
+        if (userData.type === "seller") {
+          const materialsResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/materials/my`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            }
+          );
+
+          if (materialsResponse.ok) {
+            const materialsData = await materialsResponse.json();
+            setMaterials(materialsData);
+          }
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки данных:", error);
+        router.push("/auth/login");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchData();
-  }, [user, router]);
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    router.push("/auth/login");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container py-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="md:col-span-1">
+            <Card>
+              <CardHeader className="flex flex-col items-center">
+                <Skeleton className="h-24 w-24 rounded-full" />
+                <Skeleton className="h-6 w-3/4 mt-4" />
+                <Skeleton className="h-4 w-full mt-2" />
+                <Skeleton className="h-6 w-1/2 mt-2" />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[...Array(5)].map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-full" />
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+          <div className="md:col-span-3">
+            <Skeleton className="h-10 w-full mb-4" />
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-24 w-full" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;
@@ -85,15 +202,13 @@ export default function ProfilePage() {
                 </Button>
 
                 {user.type === "buyer" ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="justify-start"
-                      onClick={() => router.push("/profile/applications")}
-                    >
-                      Мои заявки на покупку
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => router.push("/profile/applications")}
+                  >
+                    Мои заявки на покупку
+                  </Button>
                 ) : (
                   <>
                     <Button
@@ -126,6 +241,13 @@ export default function ProfilePage() {
                   onClick={() => router.push("/profile/settings")}
                 >
                   Настройки
+                </Button>
+                <Button
+                  variant="outline"
+                  className="justify-start text-red-500 hover:text-red-600"
+                  onClick={handleLogout}
+                >
+                  Выйти
                 </Button>
               </div>
             </CardContent>

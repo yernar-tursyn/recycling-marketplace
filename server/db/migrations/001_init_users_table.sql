@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `name` varchar(255) NOT NULL,
-  `userType` enum('buyer','manager','admin') NOT NULL DEFAULT 'buyer',
+  `userType` enum('buyer','seller', 'manager','admin') NOT NULL DEFAULT 'buyer',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

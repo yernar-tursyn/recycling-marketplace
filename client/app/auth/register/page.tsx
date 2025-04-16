@@ -106,16 +106,20 @@ export default function RegisterPage() {
       const data = await response.json();
 
       if (response.ok) {
+        console.log("Вы успешно зарегистрировались");
+
         toast({
           title: "Регистрация успешна",
           description: "Вы успешно зарегистрировались",
         });
+
         router.push("/auth/login");
       } else {
+        console.log("Ошибка регистрации:", data.error);
         toast({
           variant: "destructive",
           title: "Ошибка регистрации",
-          description: data.message || "Что-то пошло не так",
+          description: data.error || "Что-то пошло не так",
         });
       }
     } catch (error) {
@@ -124,6 +128,7 @@ export default function RegisterPage() {
         title: "Ошибка",
         description: "Произошла ошибка при регистрации",
       });
+      console.log("Ошибка при регистрации:", error);
     } finally {
       setIsLoading(false);
     }

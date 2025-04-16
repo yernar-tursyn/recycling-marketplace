@@ -6,7 +6,7 @@ import { ResultSetHeader } from "mysql2";
 interface Material extends RowDataPacket {
   id: number;
   name: string;
-  category: string;
+  category: number;
   description?: string;
   price: number;
   quantity: number;
@@ -18,7 +18,7 @@ interface Material extends RowDataPacket {
 
 interface MaterialInput {
   name: string;
-  category: string;
+  category: number;
   description?: string;
   price: number;
   quantity: number;
@@ -112,7 +112,7 @@ class MaterialModel {
 
   static async search(
     query?: string,
-    category?: string,
+    category?: number,
     sort?: string
   ): Promise<Material[]> {
     let sql = "SELECT * FROM materials WHERE 1=1";

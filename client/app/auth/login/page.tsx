@@ -66,39 +66,26 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     setIsLoading(true);
-    console.log("[Login Page] Submitting login form for:", email);
 
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/users/login`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         }
       );
 
       if (!response.ok) {
         const data = await response.json();
-        toast({
-          variant: "destructive",
-          title: "Ошибка входа",
-          description: data.error || "Неверный email или пароль",
-        });
-        console.log("[Login Page] Login failed");
-        return;
+        throw new Error(data.error || "Неверный email или пароль");
       }
 
       const data = await response.json();
-      console.log("[Login Page] Login success, received token:", data.token);
-
-      // Сохраняем токен в localStorage или cookie
       localStorage.setItem("token", data.token);
 
       toast({
@@ -106,8 +93,8 @@ export default function LoginPage() {
         description: "Вы успешно вошли в систему",
       });
 
-      router.push("/profile"); // Редирект на профиль
-
+      // Просто редирект, сервер сам проверит токен при запросах
+      router.push("/profile");
     } catch (error) {
       console.log("[Login Page] Login error:", error);
       toast({

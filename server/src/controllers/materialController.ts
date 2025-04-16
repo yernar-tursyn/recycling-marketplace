@@ -12,6 +12,11 @@ export const createMaterial = async (req: Request, res: Response) => {
       });
     }
 
+    const categoryNumber = Number(category);
+    if (isNaN(categoryNumber)) {
+      return res.status(400).json({ error: "Некорректное значение категории" });
+    }
+
     const materialData: MaterialInput = {
       name,
       category,
@@ -64,9 +69,21 @@ export const createMaterial = async (req: Request, res: Response) => {
 export const searchMaterials = async (req: Request, res: Response) => {
   try {
     const { query, category, sort } = req.query;
+
+    // Преобразуем category в number, если он предоставлен
+    let categoryNumber: number | undefined;
+    if (category) {
+      categoryNumber = Number(category);
+      if (isNaN(categoryNumber)) {
+        return res
+          .status(400)
+          .json({ error: "Некорректное значение категории" });
+      }
+    }
+
     const materials = await MaterialModel.search(
       query as string,
-      category as string,
+      categoryNumber, // Теперь передаем number или undefined
       sort as string
     );
     res.json(materials);

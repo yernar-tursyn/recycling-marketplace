@@ -89,7 +89,7 @@ router.post("/", authMiddleware, createMaterial);
  *         name: sort
  *         schema:
  *           type: string
- *         description: Критерий сортировки (например: price_asc, price_desc)
+ *         description: Критерий сортировки (например price_asc, price_desc)
  *     responses:
  *       200:
  *         description: Результаты поиска
