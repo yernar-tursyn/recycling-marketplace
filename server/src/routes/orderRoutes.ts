@@ -66,7 +66,7 @@ router.post("/", authMiddleware, createOrder);
  * @swagger
  * /api/orders:
  *   get:
- *     summary: Получить список заказов
+ *     summary: Получить список заказов покупателя
  *     tags: [Orders]
  *     security:
  *       - bearerAuth: []
@@ -153,7 +153,7 @@ router.get("/:id", authMiddleware, getOrderById);
  *       400:
  *         description: Ошибка валидации или отсутствуют данные
  *       403:
- *         description: Нет прав для обновления заказа
+ *         description: Нет прав для обновления заказа (need admin or manager role)
  *       404:
  *         description: Заказ не найден
  *       500:
