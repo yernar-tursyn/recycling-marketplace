@@ -3,7 +3,7 @@ import { MaterialDetailClient } from "./material-detail-client";
 export default async function MaterialDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: { id: number };
 }) {
   const materialId = params.id;
 
