@@ -7,6 +7,7 @@ import { NotificationsProvider } from "@/context/notifications-context";
 import { Toaster } from "@/components/ui/toaster";
 import "@/app/globals.css";
 import { FavoritesProvider } from "@/context/favorites-context";
+import Link from "next/link";
 
 export default function RootLayout({
   children,
@@ -64,11 +65,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-import Link from "next/link";
-
-import "./globals.css";
-
-export const metadata = {
-  generator: "v0.dev",
-};

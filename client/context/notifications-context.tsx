@@ -34,6 +34,13 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
 
   const fetchNotifications = async () => {
+    if (typeof window === "undefined") {
+      setNotifications([]);
+      setUnreadCount(0);
+      setIsLoading(false);
+      return;
+    }
+
     if (!user) {
       setNotifications([]);
       setUnreadCount(0);

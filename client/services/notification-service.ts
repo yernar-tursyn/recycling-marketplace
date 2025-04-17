@@ -210,12 +210,52 @@ export const createNotificationForStaff = async (
   return { success: true };
 };
 
+export const createApplicationNotificationForAdmins = async (
+  applicationId: string,
+  applicationTitle: string,
+  userId: string,
+  userName: string
+) => {
+  const users = JSON.parse(localStorage.getItem("eco_market_users") || "[]");
+  const adminUsers = users.filter(
+    (user: any) => user.role === "admin" || user.role === "manager"
+  );
+
+  const promises = adminUsers.map((adminUser: any) =>
+    createNotification({
+      userId: adminUser.id,
+      title: "Новая заявка",
+      message: `Пользователь ${userName} создал новую заявку "${applicationTitle}"`,
+      type: "info",
+      actionUrl: "/admin/applications",
+      actionText: "Просмотреть заявку",
+      relatedUserId: userId,
+      relatedEntityId: applicationId,
+      relatedEntityType: "application",
+    })
+  );
+
+  await Promise.all(promises);
+  return { success: true };
+};
+
 export const createApplicationNotification = async (
   applicationId: string,
   applicationTitle: string,
   userId: string,
   sellerUserId: string
 ) => {
+  let userName = "Пользователь";
+  try {
+    const users = JSON.parse(localStorage.getItem("eco_market_users") || "[]");
+    const user = users.find((u: any) => u.id === userId);
+    if (user) {
+      userName = user.name;
+    }
+  } catch (error) {
+    console.error("Error getting user name:", error);
+  }
+
   await createNotificationForUser(
     userId,
     "Заявка создана",
@@ -232,7 +272,7 @@ export const createApplicationNotification = async (
   await createNotificationForUser(
     sellerUserId,
     "Новая заявка",
-    `Поступила новая заявка "${applicationTitle}" от пользователя`,
+    `Поступила новая заявка "${applicationTitle}" от пользователя ${userName}`,
     {
       type: "info",
       actionUrl: "/profile/applications",
@@ -243,17 +283,11 @@ export const createApplicationNotification = async (
     }
   );
 
-  await createNotificationForStaff(
-    "Новая заявка в системе",
-    `Создана новая заявка "${applicationTitle}"`,
-    {
-      type: "info",
-      actionUrl: "/admin/applications",
-      actionText: "Просмотреть",
-      relatedUserId: userId,
-      relatedEntityId: applicationId,
-      relatedEntityType: "application",
-    }
+  await createApplicationNotificationForAdmins(
+    applicationId,
+    applicationTitle,
+    userId,
+    userName
   );
 
   return { success: true };

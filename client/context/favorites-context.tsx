@@ -1,70 +1,88 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { useAuth } from "@/context/auth-context"
-import { getFavorites, addToFavorites, removeFromFavorites } from "@/services/favorites-service"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
+import { useAuth } from "@/context/auth-context";
+import {
+  getFavorites,
+  addToFavorites,
+  removeFromFavorites,
+} from "@/services/favorites-service";
 
 interface FavoritesContextType {
-  favorites: string[]
-  toggleFavorite: (materialId: string) => void
-  isLoading: boolean
+  favorites: string[];
+  toggleFavorite: (materialId: string) => void;
+  isLoading: boolean;
 }
 
-const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined)
+const FavoritesContext = createContext<FavoritesContextType | undefined>(
+  undefined
+);
 
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const [favorites, setFavorites] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const { user } = useAuth()
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      setIsLoading(false);
+      return;
+    }
+
     if (user) {
       const fetchFavorites = async () => {
         try {
-          const data = await getFavorites(user.id)
-          setFavorites(data)
+          const data = await getFavorites(user.id);
+          setFavorites(data);
         } catch (error) {
-          console.error("Error fetching favorites:", error)
+          console.error("Error fetching favorites:", error);
         } finally {
-          setIsLoading(false)
+          setIsLoading(false);
         }
-      }
+      };
 
-      fetchFavorites()
+      fetchFavorites();
     } else {
-      setFavorites([])
-      setIsLoading(false)
+      setFavorites([]);
+      setIsLoading(false);
     }
-  }, [user])
+  }, [user]);
 
   const toggleFavorite = async (materialId: string) => {
-    if (!user) return
+    if (!user) return;
 
     try {
       if (favorites.includes(materialId)) {
-        await removeFromFavorites(user.id, materialId)
-        setFavorites(favorites.filter((id) => id !== materialId))
+        await removeFromFavorites(user.id, materialId);
+        setFavorites(favorites.filter((id) => id !== materialId));
       } else {
-        await addToFavorites(user.id, materialId)
-        setFavorites([...favorites, materialId])
+        await addToFavorites(user.id, materialId);
+        setFavorites([...favorites, materialId]);
       }
     } catch (error) {
-      console.error("Error toggling favorite:", error)
+      console.error("Error toggling favorite:", error);
     }
-  }
+  };
 
   return (
-    <FavoritesContext.Provider value={{ favorites, toggleFavorite, isLoading }}>{children}</FavoritesContext.Provider>
-  )
+    <FavoritesContext.Provider value={{ favorites, toggleFavorite, isLoading }}>
+      {children}
+    </FavoritesContext.Provider>
+  );
 }
 
 export function useFavorites() {
-  const context = useContext(FavoritesContext)
+  const context = useContext(FavoritesContext);
 
   if (context === undefined) {
-    throw new Error("useFavorites must be used within a FavoritesProvider")
+    throw new Error("useFavorites must be used within a FavoritesProvider");
   }
 
-  return context
+  return context;
 }
-

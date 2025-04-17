@@ -1,251 +1,232 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  getAllMaterials,
-  updateMaterialStatus,
-} from "@/services/material-service";
-import { addAdminLog } from "@/services/admin-service";
-import { createMaterialNotification } from "@/services/notification-service";
-import { useToast } from "@/components/ui/use-toast";
-import { CheckCircle, MoreHorizontal, Package, XCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { getUserMaterials, deleteMaterial } from "@/services/material-service";
 import type { MaterialType } from "@/types/material";
+import { useToast } from "@/components/ui/use-toast";
+import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function MaterialsPage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
   const { toast } = useToast();
+
   const [materials, setMaterials] = useState<MaterialType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMaterials, setIsLoadingMaterials] = useState(true);
+  const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(
+    null
+  );
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
-    const fetchMaterials = async () => {
-      try {
-        const data = await getAllMaterials();
-        setMaterials(data);
-      } catch (error) {
-        console.error("Error fetching materials:", error);
-        toast({
-          variant: "destructive",
-          title: "Ошибка",
-          description: "Не удалось загрузить список материалов",
-        });
-      } finally {
-        setIsLoading(false);
+    if (typeof window !== "undefined") {
+      if (!isLoading && !user) {
+        router.push("/auth/login");
+        return;
       }
-    };
 
-    fetchMaterials();
-  }, [toast]);
-
-  const handleUpdateStatus = async (materialId: string, newStatus: string) => {
-    try {
-      const updatedMaterial = await updateMaterialStatus(materialId, newStatus);
-
-      setMaterials(
-        materials.map((m) =>
-          m.id === materialId ? { ...m, status: newStatus } : m
-        )
-      );
-
-      await createMaterialNotification(
-        materialId,
-        updatedMaterial.name,
-        updatedMaterial.userId,
-        newStatus
-      );
+      if (user && user.type !== "seller") {
+        router.push("/profile");
+        return;
+      }
 
       if (user) {
-        await addAdminLog({
-          userId: user.id,
-          userName: user.name,
-          action: "update_material_status",
-          details: `Изменен статус материала ${materialId} на ${newStatus}`,
-          ip: "127.0.0.1",
-        });
+        fetchMaterials();
       }
+    }
+  }, [user, isLoading, router]);
 
-      toast({
-        title: "Статус обновлен",
-        description: `Статус материала успешно изменен на "${
-          newStatus === "active"
-            ? "Активен"
-            : newStatus === "pending"
-            ? "На проверке"
-            : "Отклонен"
-        }"`,
-      });
+  const fetchMaterials = async () => {
+    if (!user) return;
+
+    setIsLoadingMaterials(true);
+
+    try {
+      const data = await getUserMaterials(user.id);
+      setMaterials(data);
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Ошибка",
-        description: "Не удалось обновить статус материала",
+        description: "Не удалось загрузить материалы",
+      });
+    } finally {
+      setIsLoadingMaterials(false);
+    }
+  };
+
+  const handleDeleteMaterial = async () => {
+    if (!selectedMaterial) return;
+
+    try {
+      await deleteMaterial(selectedMaterial.id);
+
+      toast({
+        title: "Материал удален",
+        description: "Материал был успешно удален",
+      });
+
+      setIsDeleteDialogOpen(false);
+      fetchMaterials();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось удалить материал",
       });
     }
   };
 
-  const getMaterialTypeLabel = (type: string) => {
-    switch (type) {
-      case "paper":
-        return "Бумага";
-      case "plastic":
-        return "Пластик";
-      case "glass":
-        return "Стекло";
-      case "metal":
-        return "Металл";
-      case "electronics":
-        return "Электроника";
-      default:
-        return type;
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground">Загрузка материалов...</p>
-      </div>
-    );
+  if (isLoading || !user || user.type !== "seller") {
+    return null;
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Управление материалами</h1>
-        <Badge variant="outline">{materials.length} материалов</Badge>
+    <div className="container py-10">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Мои материалы</h1>
+        <Button onClick={() => router.push("/profile/materials/new")}>
+          <Plus className="mr-2 h-4 w-4" />
+          Добавить материал
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Список материалов</CardTitle>
-          <CardDescription>
-            Управление материалами на платформе. Вы можете одобрять, отклонять и
-            модерировать материалы.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название</TableHead>
-                <TableHead>Тип</TableHead>
-                <TableHead>Цена (₽/кг)</TableHead>
-                <TableHead>Количество (кг)</TableHead>
-                <TableHead>Продавец</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Дата создания</TableHead>
-                <TableHead className="text-right">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {materials.map((material) => (
-                <TableRow key={material.id}>
-                  <TableCell className="font-medium">{material.name}</TableCell>
-                  <TableCell>{getMaterialTypeLabel(material.type)}</TableCell>
-                  <TableCell>{material.price}</TableCell>
-                  <TableCell>{material.quantity}</TableCell>
-                  <TableCell>{material.userName}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        material.status === "active"
-                          ? "default"
-                          : material.status === "pending"
-                          ? "secondary"
-                          : "destructive"
-                      }
-                      className={
-                        material.status === "active"
-                          ? "bg-green-500 hover:bg-green-600"
-                          : ""
-                      }
-                    >
-                      {material.status === "active"
-                        ? "Активен"
+      {isLoadingMaterials ? (
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">Загрузка материалов...</p>
+        </div>
+      ) : materials.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {materials.map((material) => (
+            <Card key={material.id} className="overflow-hidden">
+              <div
+                className="h-48 bg-muted bg-cover bg-center"
+                style={{ backgroundImage: `url(${material.image})` }}
+              />
+              <CardHeader className="p-4">
+                <div className="flex justify-between">
+                  <CardTitle className="text-lg">{material.name}</CardTitle>
+                  <Badge
+                    variant={
+                      material.status === "active"
+                        ? "default"
                         : material.status === "pending"
-                        ? "На проверке"
-                        : "Отклонен"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(material.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Меню</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Действия</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {material.status !== "active" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(material.id, "active")
-                            }
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            <span>Одобрить</span>
-                          </DropdownMenuItem>
-                        )}
-                        {material.status !== "rejected" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(material.id, "rejected")
-                            }
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            <span>Отклонить</span>
-                          </DropdownMenuItem>
-                        )}
-                        {material.status !== "pending" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(material.id, "pending")
-                            }
-                          >
-                            <Package className="mr-2 h-4 w-4" />
-                            <span>Вернуть на проверку</span>
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                        ? "secondary"
+                        : "destructive"
+                    }
+                  >
+                    {material.status === "active"
+                      ? "Активен"
+                      : material.status === "pending"
+                      ? "На проверке"
+                      : "Отклонен"}
+                  </Badge>
+                </div>
+                <CardDescription>{material.type}</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <p className="text-sm line-clamp-2 mb-2">
+                  {material.description}
+                </p>
+                <div className="flex justify-between items-center">
+                  <span className="font-bold">{material.price} ₽/кг</span>
+                  <span>Количество: {material.quantity} кг</span>
+                </div>
+              </CardContent>
+              <CardFooter className="p-4 flex justify-between">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => router.push(`/marketplace/${material.id}`)}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Просмотр
+                </Button>
+                <div className="space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/profile/materials/edit/${material.id}`)
+                    }
+                    disabled={
+                      material.status !== "active" &&
+                      material.status !== "pending"
+                    }
+                  >
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Редактировать
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedMaterial(material);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Удалить
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-10">
+          <p className="text-muted-foreground">У вас пока нет материалов</p>
+          <Button
+            className="mt-4"
+            onClick={() => router.push("/profile/materials/new")}
+          >
+            Добавить материал
+          </Button>
+        </div>
+      )}
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Удаление материала</DialogTitle>
+            <DialogDescription>
+              Вы уверены, что хотите удалить материал "{selectedMaterial?.name}
+              "? Это действие нельзя отменить.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteMaterial}>
+              Удалить
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -35,6 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      setIsLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem("token");
     console.log("[Auth Context] Initial token check:", !!token);
 

@@ -60,13 +60,15 @@ export default function ApplicationsPage() {
   const [price, setPrice] = useState("0");
 
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/auth/login");
-      return;
-    }
+    if (typeof window !== "undefined") {
+      if (!isLoading && !user) {
+        router.push("/auth/login");
+        return;
+      }
 
-    if (user) {
-      fetchApplications();
+      if (user) {
+        fetchApplications();
+      }
     }
   }, [user, isLoading, router]);
 
@@ -262,7 +264,7 @@ export default function ApplicationsPage() {
                       Цена:{" "}
                     </span>
                     <span className="text-sm font-medium">
-                      {application.price} ₸/кг
+                      {application.price} ₽/кг
                     </span>
                   </div>
                 </div>
@@ -299,7 +301,6 @@ export default function ApplicationsPage() {
         </div>
       )}
 
-      {/* Диалог создания заявки */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
         <DialogContent>
           <DialogHeader>
@@ -354,7 +355,7 @@ export default function ApplicationsPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="price">Цена (₸/кг)</Label>
+                <Label htmlFor="price">Цена (₽/кг)</Label>
                 <Input
                   id="price"
                   type="number"
@@ -424,7 +425,7 @@ export default function ApplicationsPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="edit-price">Цена (₸/кг)</Label>
+                <Label htmlFor="edit-price">Цена (₽/кг)</Label>
                 <Input
                   id="edit-price"
                   type="number"

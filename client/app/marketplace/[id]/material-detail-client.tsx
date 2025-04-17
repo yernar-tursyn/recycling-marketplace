@@ -71,15 +71,13 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
     setIsSubmitting(true);
 
     try {
+      const actionType = user.type === "buyer" ? "покупку" : "продажу";
+
       const application = await createApplication({
-        title: `Заявка на ${
-          material.dealType === "buy" ? "продажу" : "покупку"
-        } ${material.name}`,
+        title: `Заявка на ${actionType} ${material.name}`,
         description:
           message ||
-          `Заявка на ${material.dealType === "buy" ? "продажу" : "покупку"} ${
-            material.name
-          } в количестве ${quantity} кг`,
+          `Заявка на ${actionType} ${material.name} в количестве ${quantity} кг`,
         materialType: material.type,
         quantity: Number(quantity),
         price: material.price,
@@ -220,7 +218,11 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="w-full">
-                  {material.dealType === "buy"
+                  {user?.type === "buyer"
+                    ? "Купить материал"
+                    : user?.type === "seller"
+                    ? "Продать материал"
+                    : material.dealType === "buy"
                     ? "Продать материал"
                     : "Купить материал"}
                 </Button>
@@ -228,13 +230,23 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>
-                    {material.dealType === "buy"
+                    {user?.type === "buyer"
+                      ? "Покупка материала"
+                      : user?.type === "seller"
+                      ? "Продажа материала"
+                      : material.dealType === "buy"
                       ? "Продажа материала"
                       : "Покупка материала"}
                   </DialogTitle>
                   <DialogDescription>
                     Заполните форму для создания заявки на{" "}
-                    {material.dealType === "buy" ? "продажу" : "покупку"}{" "}
+                    {user?.type === "buyer"
+                      ? "покупку"
+                      : user?.type === "seller"
+                      ? "продажу"
+                      : material.dealType === "buy"
+                      ? "продажу"
+                      : "покупку"}{" "}
                     материала
                   </DialogDescription>
                 </DialogHeader>

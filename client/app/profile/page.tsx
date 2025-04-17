@@ -21,30 +21,38 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, FileText, MapPin, Package, Plus } from "lucide-react";
 
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    if (!user) {
-      router.push("/auth/login");
-      return;
-    }
-
-    const fetchData = async () => {
-      const appsData = await getUserApplications(user.id);
-      setApplications(appsData);
-
-      if (user.type === "seller") {
-        const materialsData = await getUserMaterials(user.id);
-        setMaterials(materialsData);
+    if (typeof window !== "undefined") {
+      if (!isLoading && !user) {
+        router.push("/auth/login");
+        return;
       }
-    };
 
-    fetchData();
-  }, [user, router]);
+      if (user) {
+        const fetchData = async () => {
+          try {
+            const appsData = await getUserApplications(user.id);
+            setApplications(appsData);
+
+            if (user.type === "seller") {
+              const materialsData = await getUserMaterials(user.id);
+              setMaterials(materialsData);
+            }
+          } catch (error) {
+            console.error("Error fetching user data:", error);
+          }
+        };
+
+        fetchData();
+      }
+    }
+  }, [user, isLoading, router]);
 
   if (!user) {
     return null;
@@ -57,7 +65,10 @@ export default function ProfilePage() {
           <Card>
             <CardHeader className="flex flex-col items-center">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage
+                  src={user.avatar || "/placeholder.svg"}
+                  alt={user.name}
+                />
                 <AvatarFallback className="text-lg">
                   {user.name.charAt(0)}
                 </AvatarFallback>

@@ -19,6 +19,7 @@ const getApplicationsFromStorage = (): ApplicationType[] => {
       quantity: 50,
       price: 15,
       userId: "user1",
+      userName: "Иван Петров",
       status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -31,6 +32,7 @@ const getApplicationsFromStorage = (): ApplicationType[] => {
       quantity: 100,
       price: 80,
       userId: "user2",
+      userName: "Анна Иванова",
       status: "active",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -43,6 +45,7 @@ const getApplicationsFromStorage = (): ApplicationType[] => {
       quantity: 30,
       price: 200,
       userId: "user1",
+      userName: "Иван Петров",
       status: "completed",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -92,12 +95,24 @@ export const createApplication = async (
 
   const applications = getApplicationsFromStorage();
 
+  let userName = "Пользователь";
+  try {
+    const users = JSON.parse(localStorage.getItem("eco_market_users") || "[]");
+    const user = users.find((u: any) => u.id === application.userId);
+    if (user) {
+      userName = user.name;
+    }
+  } catch (error) {
+    console.error("Error getting user name:", error);
+  }
+
   const newApplication: ApplicationType = {
     ...application,
     id: uuidv4(),
     status: "active",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    userName,
   };
 
   saveApplications([...applications, newApplication]);

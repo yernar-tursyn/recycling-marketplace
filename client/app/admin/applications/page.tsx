@@ -32,13 +32,16 @@ import {
   updateApplicationStatus,
 } from "@/services/application-service";
 import { addAdminLog } from "@/services/admin-service";
+import { createApplicationStatusNotification } from "@/services/notification-service";
 import { useToast } from "@/components/ui/use-toast";
-import { CheckCircle, MoreHorizontal, XCircle } from "lucide-react";
+import { CheckCircle, MoreHorizontal, XCircle, Eye } from "lucide-react";
 import type { ApplicationType } from "@/types/application";
+import { useRouter } from "next/navigation";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,16 +70,27 @@ export default function ApplicationsPage() {
     newStatus: string
   ) => {
     try {
-      await updateApplicationStatus(applicationId, newStatus);
+      const updatedApp = await updateApplicationStatus(
+        applicationId,
+        newStatus
+      );
 
-      // Обновляем список заявок
       setApplications(
         applications.map((a) =>
           a.id === applicationId ? { ...a, status: newStatus } : a
         )
       );
 
-      // Логируем действие
+      if (user) {
+        await createApplicationStatusNotification(
+          applicationId,
+          updatedApp.title,
+          updatedApp.userId,
+          newStatus,
+          user.id
+        );
+      }
+
       if (user) {
         await addAdminLog({
           userId: user.id,
@@ -151,6 +165,7 @@ export default function ApplicationsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Заголовок</TableHead>
+                <TableHead>Пользователь</TableHead>
                 <TableHead>Тип материала</TableHead>
                 <TableHead>Количество (кг)</TableHead>
                 <TableHead>Цена (₽/кг)</TableHead>
@@ -160,87 +175,109 @@ export default function ApplicationsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {applications.map((application) => (
-                <TableRow key={application.id}>
-                  <TableCell className="font-medium">
-                    {application.title}
-                  </TableCell>
-                  <TableCell>
-                    {getMaterialTypeLabel(application.materialType)}
-                  </TableCell>
-                  <TableCell>{application.quantity}</TableCell>
-                  <TableCell>{application.price}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        application.status === "active"
-                          ? "default"
+              {applications.length > 0 ? (
+                applications.map((application) => (
+                  <TableRow key={application.id}>
+                    <TableCell className="font-medium">
+                      {application.title}
+                    </TableCell>
+                    <TableCell>
+                      {application.userName || "Пользователь"}
+                    </TableCell>
+                    <TableCell>
+                      {getMaterialTypeLabel(application.materialType)}
+                    </TableCell>
+                    <TableCell>{application.quantity}</TableCell>
+                    <TableCell>{application.price}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          application.status === "active"
+                            ? "default"
+                            : application.status === "completed"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                        className={
+                          application.status === "completed"
+                            ? "bg-green-500 hover:bg-green-600"
+                            : ""
+                        }
+                      >
+                        {application.status === "active"
+                          ? "Активна"
                           : application.status === "completed"
-                          ? "secondary"
-                          : "destructive"
-                      }
-                      className={
-                        application.status === "completed"
-                          ? "bg-green-500 hover:bg-green-600"
-                          : ""
-                      }
-                    >
-                      {application.status === "active"
-                        ? "Активна"
-                        : application.status === "completed"
-                        ? "Завершена"
-                        : "Отменена"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(application.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Меню</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Действия</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {application.status !== "completed" && (
+                          ? "Завершена"
+                          : "Отменена"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(application.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Меню</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Действия</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() =>
-                              handleUpdateStatus(application.id, "completed")
+                              router.push(
+                                `/admin/applications/${application.id}`
+                              )
                             }
                           >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            <span>Завершить</span>
+                            <Eye className="mr-2 h-4 w-4" />
+                            <span>Просмотреть детали</span>
                           </DropdownMenuItem>
-                        )}
-                        {application.status !== "cancelled" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(application.id, "cancelled")
-                            }
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            <span>Отменить</span>
-                          </DropdownMenuItem>
-                        )}
-                        {application.status !== "active" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(application.id, "active")
-                            }
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            <span>Активировать</span>
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <DropdownMenuSeparator />
+                          {application.status !== "completed" && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleUpdateStatus(application.id, "completed")
+                              }
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              <span>Завершить</span>
+                            </DropdownMenuItem>
+                          )}
+                          {application.status !== "cancelled" && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleUpdateStatus(application.id, "cancelled")
+                              }
+                            >
+                              <XCircle className="mr-2 h-4 w-4" />
+                              <span>Отменить</span>
+                            </DropdownMenuItem>
+                          )}
+                          {application.status !== "active" && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleUpdateStatus(application.id, "active")
+                              }
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              <span>Активировать</span>
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-6">
+                    <p className="text-muted-foreground">Заявки отсутствуют</p>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
