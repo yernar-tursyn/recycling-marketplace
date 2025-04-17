@@ -10,97 +10,28 @@ const getMaterialsFromStorage = (): MaterialType[] => {
     return JSON.parse(materials);
   }
 
-  const initialMaterials = [
+  const initialMaterials: MaterialType[] = [
     {
-      id: uuidv4(),
-      name: "ПЭТ бутылки",
-      type: "plastic",
-      description: "Чистые пластиковые бутылки без крышек и этикеток",
-      price: 25,
-      quantity: 100,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user1",
-      userName: "Иван Петров",
+      id: 2,
+      name: "string",
+      category: 1,
+      description: "string",
+      price: 0,
+      quantity: 0,
+      unit: "kg",
+      location: "string",
+      seller_id: 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      image_url: null,
+      deal_type: "buy", // Теперь соответствует типу "buy" | "sell" | undefined
       status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "sell",
-    },
-    {
-      id: uuidv4(),
-      name: "Макулатура",
-      type: "paper",
-      description: "Газеты, журналы, книги, картон",
-      price: 15,
-      quantity: 200,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user2",
-      userName: "Анна Иванова",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "buy",
-    },
-    {
-      id: uuidv4(),
-      name: "Алюминиевые банки",
-      type: "metal",
-      description: "Чистые алюминиевые банки от напитков",
-      price: 80,
-      quantity: 50,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user3",
-      userName: "Петр Сидоров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "sell",
-    },
-    {
-      id: uuidv4(),
-      name: "Стеклянные бутылки",
-      type: "glass",
-      description: "Стеклянные бутылки любого цвета",
-      price: 10,
-      quantity: 150,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user1",
-      userName: "Иван Петров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "buy",
-    },
-    {
-      id: uuidv4(),
-      name: "Старая электроника",
-      type: "electronics",
-      description: "Компьютеры, телефоны, платы и другая электроника",
-      price: 200,
-      quantity: 30,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user2",
-      userName: "Анна Иванова",
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      dealType: "sell",
-    },
-    {
-      id: uuidv4(),
-      name: "Картонные коробки",
-      type: "paper",
-      description: "Чистые картонные коробки",
-      price: 20,
-      quantity: 100,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user3",
-      userName: "Петр Сидоров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "buy",
     },
   ];
 
   localStorage.setItem(MATERIALS_KEY, JSON.stringify(initialMaterials));
   return initialMaterials;
 };
-
 const saveMaterials = (materials: MaterialType[]) => {
   localStorage.setItem(MATERIALS_KEY, JSON.stringify(materials));
 };
@@ -111,7 +42,7 @@ export const getMaterials = async () => {
   return getMaterialsFromStorage();
 };
 
-export const getMaterialById = async (id: string) => {
+export const getMaterialById = async (id: number) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   const materials = getMaterialsFromStorage();
@@ -127,7 +58,7 @@ export const getMaterialById = async (id: string) => {
 };
 
 export const createMaterial = async (
-  material: Omit<MaterialType, "id" | "createdAt" | "status">
+  material: Omit<MaterialType, "status">
 ) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -135,8 +66,6 @@ export const createMaterial = async (
 
   const newMaterial: MaterialType = {
     ...material,
-    id: uuidv4(),
-    createdAt: new Date().toISOString(),
     status: "pending",
   };
 
@@ -146,13 +75,13 @@ export const createMaterial = async (
 };
 
 export const updateMaterial = async (
-  id: string,
+  id: number,
   updates: Partial<MaterialType>
 ) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const materials = getMaterialsFromStorage();
-  const index = materials.findIndex((m) => m.id === id);
+  const index = materials.findIndex((m) => m.seller_id === id);
 
   if (index === -1) {
     throw new Error("Material not found");
@@ -166,7 +95,7 @@ export const updateMaterial = async (
   return updatedMaterial;
 };
 
-export const deleteMaterial = async (id: string) => {
+export const deleteMaterial = async (id: number) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const materials = getMaterialsFromStorage();
@@ -177,11 +106,11 @@ export const deleteMaterial = async (id: string) => {
   return { success: true };
 };
 
-export const getUserMaterials = async (userId: string) => {
+export const getUserMaterials = async (userId: number) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   const materials = getMaterialsFromStorage();
-  return materials.filter((m) => m.userId === userId);
+  return materials.filter((m) => m.seller_id === userId);
 };
 
 export const getAllMaterials = async () => {
@@ -190,7 +119,7 @@ export const getAllMaterials = async () => {
   return getMaterialsFromStorage();
 };
 
-export const updateMaterialStatus = async (id: string, status: string) => {
+export const updateMaterialStatus = async (id: number, status: string) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   const materials = getMaterialsFromStorage();

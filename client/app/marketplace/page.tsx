@@ -30,7 +30,7 @@ import type { MaterialType } from "@/types/material";
 import {
   MATERIAL_CATEGORIES,
   MaterialCategory,
-} from "@/types/constants/materialCategories";
+} from "@/constants/materialCategories";
 
 export default function MarketplacePage() {
   const [materials, setMaterials] = useState<MaterialType[]>([]);

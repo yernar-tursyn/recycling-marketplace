@@ -36,6 +36,11 @@ import { useToast } from "@/components/ui/use-toast";
 import { CheckCircle, MoreHorizontal, Package, XCircle } from "lucide-react";
 import type { MaterialType } from "@/types/material";
 
+import {
+  MATERIAL_CATEGORIES,
+  MaterialCategory,
+} from "@/constants/materialCategories";
+
 export default function MaterialsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -62,7 +67,7 @@ export default function MaterialsPage() {
     fetchMaterials();
   }, [toast]);
 
-  const handleUpdateStatus = async (materialId: string, newStatus: string) => {
+  const handleUpdateStatus = async (materialId: number, newStatus: string) => {
     try {
       await updateMaterialStatus(materialId, newStatus);
 
@@ -103,21 +108,8 @@ export default function MaterialsPage() {
     }
   };
 
-  const getMaterialTypeLabel = (type: string) => {
-    switch (type) {
-      case "paper":
-        return "Бумага";
-      case "plastic":
-        return "Пластик";
-      case "glass":
-        return "Стекло";
-      case "metal":
-        return "Металл";
-      case "electronics":
-        return "Электроника";
-      default:
-        return type;
-    }
+  const getMaterialTypeLabel = (category: MaterialCategory) => {
+    return MATERIAL_CATEGORIES[category];
   };
 
   if (isLoading) {
@@ -161,10 +153,14 @@ export default function MaterialsPage() {
               {materials.map((material) => (
                 <TableRow key={material.id}>
                   <TableCell className="font-medium">{material.name}</TableCell>
-                  <TableCell>{getMaterialTypeLabel(material.type)}</TableCell>
+                  <TableCell>
+                    {getMaterialTypeLabel(
+                      material.category as MaterialCategory
+                    )}
+                  </TableCell>
                   <TableCell>{material.price}</TableCell>
                   <TableCell>{material.quantity}</TableCell>
-                  <TableCell>{material.userName}</TableCell>
+                  <TableCell>{material.deal_type}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -188,7 +184,7 @@ export default function MaterialsPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(material.createdAt).toLocaleDateString()}
+                    {new Date(material.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
