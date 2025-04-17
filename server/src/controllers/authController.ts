@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import UserModel, { UserInput } from "../models/userModel";
 import { generateToken, comparePasswords } from "../utils/passwordUtils";
 import { registerValidator, validate } from "../validators/authValidator";
-import { body, validationResult } from "express-validator";
 
 interface AuthenticatedRequest extends Request {
   user?: UserPayload; // Теперь user будет иметь тип UserPayload
