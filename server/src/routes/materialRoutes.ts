@@ -169,29 +169,67 @@ router.get("/:id", getMaterialById);
  */
 router.put("/:id", authMiddleware, updateMaterial);
 
-// /**
-//  * @swagger
-//  * /api/materials/{id}:
-//  *   delete:
-//  *     summary: Удалить материал по ID
-//  *     tags: [Materials]
-//  *     security:
-//  *       - bearerAuth: []
-//  *     parameters:
-//  *       - in: path
-//  *         name: id
-//  *         required: true
-//  *         schema:
-//  *           type: integer
-//  *         description: ID материала
-//  *     responses:
-//  *       200:
-//  *         description: Материал успешно удалён
-//  *       404:
-//  *         description: Материал не найден
-//  *       500:
-//  *         description: Ошибка при удалении
-//  */
+/**
+ * @swagger
+ * /api/materials/{id}:
+ *   delete:
+ *     summary: Удаление материала по ID
+ *     description: Удаляет материал с указанным идентификатором. Требуется авторизация.
+ *     tags:
+ *       - Materials
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Уникальный идентификатор материала
+ *         schema:
+ *           type: integer
+ *           example: 42
+ *     responses:
+ *       200:
+ *         description: Материал успешно удалён
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         description: Ошибка авторизации
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Недействительный токен
+ *       404:
+ *         description: Материал не найден
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Материал не найден
+ *       500:
+ *         description: Внутренняя ошибка сервера при удалении
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: Ошибка при удалении материала
+ */
+
 router.delete("/:id", authMiddleware, deleteMaterial);
 
 export default router;
