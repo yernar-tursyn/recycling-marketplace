@@ -83,10 +83,7 @@ export const getApplicationById = async (id: string) => {
 };
 
 export const createApplication = async (
-  application: Omit<
-    ApplicationType,
-    "id" | "createdAt" | "updatedAt" | "status"
-  >
+  application: Omit<ApplicationType, "category" | "status">
 ) => {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -94,10 +91,7 @@ export const createApplication = async (
 
   const newApplication: ApplicationType = {
     ...application,
-    id: uuidv4(),
     status: "active",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
   };
 
   saveApplications([...applications, newApplication]);

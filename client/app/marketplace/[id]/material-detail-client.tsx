@@ -32,7 +32,7 @@ import {
   Package,
 } from "lucide-react";
 
-export function MaterialDetailClient({ materialId }: { materialId: string }) {
+export function MaterialDetailClient({ materialId }: { materialId: number }) {
   const { user } = useAuth();
   const { favorites, toggleFavorite } = useFavorites();
   const router = useRouter();
@@ -66,50 +66,45 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
   }, [materialId, router, toast]);
 
   const handleCreateApplication = async () => {
-    if (!user || !material) return;
-
-    setIsSubmitting(true);
-
-    try {
-      const application = await createApplication({
-        title: `Заявка на ${
-          material.dealType === "buy" ? "продажу" : "покупку"
-        } ${material.name}`,
-        description:
-          message ||
-          `Заявка на ${material.dealType === "buy" ? "продажу" : "покупку"} ${
-            material.name
-          } в количестве ${quantity} кг`,
-        materialType: material.type,
-        quantity: Number(quantity),
-        price: material.price,
-        userId: user.id,
-      });
-
-      await createApplicationNotification(
-        application.id,
-        application.title,
-        user.id,
-        material.userId
-      );
-
-      toast({
-        title: "Заявка создана",
-        description: "Ваша заявка была успешно создана",
-      });
-
-      setIsDialogOpen(false);
-      setQuantity("1");
-      setMessage("");
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось создать заявку",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    // if (!user || !material) return;
+    // setIsSubmitting(true);
+    // try {
+    //   const application = await createApplication({
+    //     title: `Заявка на ${
+    //       material.dealType === "buy" ? "продажу" : "покупку"
+    //     } ${material.name}`,
+    //     description:
+    //       message ||
+    //       `Заявка на ${material.dealType === "buy" ? "продажу" : "покупку"} ${
+    //         material.name
+    //       } в количестве ${quantity} кг`,
+    //     materialType: material.type,
+    //     quantity: Number(quantity),
+    //     price: material.price,
+    //     userId: user.id,
+    //   });
+    //   await createApplicationNotification(
+    //     application.id,
+    //     application.title,
+    //     user.id,
+    //     material.userId
+    //   );
+    //   toast({
+    //     title: "Заявка создана",
+    //     description: "Ваша заявка была успешно создана",
+    //   });
+    //   setIsDialogOpen(false);
+    //   setQuantity("1");
+    //   setMessage("");
+    // } catch (error) {
+    //   toast({
+    //     variant: "destructive",
+    //     title: "Ошибка",
+    //     description: "Не удалось создать заявку",
+    //   });
+    // } finally {
+    //   setIsSubmitting(false);
+    // }
   };
 
   if (isLoading) {
@@ -151,23 +146,23 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div
           className="h-[300px] md:h-[400px] bg-muted bg-cover bg-center rounded-lg"
-          style={{ backgroundImage: `url(${material.image})` }}
+          style={{ backgroundImage: `url(${material.image_url})` }}
         />
 
         <div>
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-3xl font-bold">{material.name}</h1>
-              <p className="text-muted-foreground">{material.type}</p>
+              <p className="text-muted-foreground">{material.category}</p>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => toggleFavorite(material.id)}
+              onClick={() => toggleFavorite(material.id.toString())}
             >
               <Heart
                 className={`h-6 w-6 ${
-                  favorites.includes(material.id)
+                  favorites.includes(material.id.toString())
                     ? "fill-primary text-primary"
                     : ""
                 }`}
@@ -178,24 +173,24 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
           <div className="mt-6">
             <h2 className="text-2xl font-bold">{material.price} ₽/кг</h2>
             <Badge
-              variant={material.dealType === "buy" ? "default" : "outline"}
+              variant={material.deal_type === "buy" ? "default" : "outline"}
               className="mt-2"
             >
-              {material.dealType === "buy" ? "Покупка" : "Продажа"}
+              {material.deal_type === "buy" ? "Покупка" : "Продажа"}
             </Badge>
 
             <div className="mt-4 space-y-2">
               <div className="flex items-center">
                 <User className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-sm">
-                  Пользователь: {material.userName}
+                  Пользователь: {material.seller_id}
                 </span>
               </div>
               <div className="flex items-center">
                 <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-sm">
                   Дата публикации:{" "}
-                  {new Date(material.createdAt).toLocaleDateString()}
+                  {new Date(material.created_at).toLocaleDateString()}
                 </span>
               </div>
               <div className="flex items-center">
@@ -220,7 +215,7 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="w-full">
-                  {material.dealType === "buy"
+                  {material.deal_type === "buy"
                     ? "Продать материал"
                     : "Купить материал"}
                 </Button>
@@ -228,13 +223,13 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>
-                    {material.dealType === "buy"
+                    {material.deal_type === "buy"
                       ? "Продажа материала"
                       : "Покупка материала"}
                   </DialogTitle>
                   <DialogDescription>
                     Заполните форму для создания заявки на{" "}
-                    {material.dealType === "buy" ? "продажу" : "покупку"}{" "}
+                    {material.deal_type === "buy" ? "продажу" : "покупку"}{" "}
                     материала
                   </DialogDescription>
                 </DialogHeader>

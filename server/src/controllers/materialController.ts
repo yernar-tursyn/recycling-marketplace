@@ -136,19 +136,6 @@ export const updateMaterial = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteMaterial = async (req: Request, res: Response) => {
-  try {
-    const success = await MaterialModel.delete(Number(req.params.id));
-    if (!success) {
-      return res.status(404).json({ error: "Материал не найден" });
-    }
-    res.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Ошибка при удалении материала" });
-  }
-};
-
 export const getMaterialById = async (req: Request, res: Response) => {
   try {
     const material = await MaterialModel.findById(Number(req.params.id));
@@ -159,6 +146,19 @@ export const getMaterialById = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Ошибка при получении материала" });
+  }
+};
+
+export const deleteMaterial = async (req: Request, res: Response) => {
+  try {
+    const success = await MaterialModel.delete(Number(req.params.id));
+    if (!success) {
+      return res.status(404).json({ error: "Материал не найден" });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Ошибка при удалении материала" });
   }
 };
 

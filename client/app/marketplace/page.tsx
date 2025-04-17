@@ -32,6 +32,8 @@ import {
   MaterialCategory,
 } from "@/constants/materialCategories";
 
+import { getMaterials } from "@/services/material-service";
+
 export default function MarketplacePage() {
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [filteredMaterials, setFilteredMaterials] = useState<MaterialType[]>(
@@ -50,15 +52,9 @@ export default function MarketplacePage() {
     const fetchMaterials = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/materials`
-        );
+        // Заменяем fetch на вызов getMaterials из вашего сервиса
+        const data = await getMaterials();
 
-        if (!response.ok) {
-          throw new Error("Не удалось загрузить материалы");
-        }
-
-        const data = await response.json();
         setMaterials(data);
         setFilteredMaterials(data);
       } catch (err) {

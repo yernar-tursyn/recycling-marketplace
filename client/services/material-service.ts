@@ -32,29 +32,41 @@ const getMaterialsFromStorage = (): MaterialType[] => {
   localStorage.setItem(MATERIALS_KEY, JSON.stringify(initialMaterials));
   return initialMaterials;
 };
+
 const saveMaterials = (materials: MaterialType[]) => {
   localStorage.setItem(MATERIALS_KEY, JSON.stringify(materials));
 };
 
 export const getMaterials = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/materials`
+  );
 
-  return getMaterialsFromStorage();
+  if (!response.ok) {
+    throw new Error("Не удалось загрузить материалы");
+  }
+
+  return await response.json();
 };
 
 export const getMaterialById = async (id: number) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  try {
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/materials/${id}`
+    );
 
-  const materials = getMaterialsFromStorage();
-  const material = materials.find((m) => m.id === id);
+    if (!response.ok) {
+      throw new Error("Material not found");
+    }
 
-  if (!material) {
-    throw new Error("Material not found");
+    const material = await response.json();
+    console.log(`Fetching material with ID: ${id}`, material);
+
+    return material;
+  } catch (error) {
+    console.error(`Error fetching material with ID ${id}:`, error);
+    throw error; // Перебрасываем ошибку для обработки в компоненте
   }
-
-  console.log(`Fetching material with ID: ${id}`, material);
-
-  return material;
 };
 
 export const createMaterial = async (
