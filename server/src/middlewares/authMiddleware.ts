@@ -13,7 +13,7 @@ const authMiddleware = async (
     return res.status(401).json({ error: "Неверный формат авторизации" });
   }
 
-  const token = authHeader.slice(7); // "Bearer ".length
+  const token = authHeader.slice(7); // Удаляем "Bearer "
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
@@ -21,12 +21,17 @@ const authMiddleware = async (
     };
 
     const user = await UserModel.findById(decoded.userId);
+
     if (!user) {
       return res.status(401).json({ error: "Пользователь не найден" });
     }
 
-    // Типизированное присвоение
-    req.user = { id: user.id }; // Только необходимые поля
+    // Добавляем id и userType
+    req.user = {
+      id: user.id,
+      userType: user.userType as "admin" | "manager" | "seller" | "buyer",
+    };
+
     next();
   } catch (error) {
     const message =

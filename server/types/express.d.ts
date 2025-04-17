@@ -8,7 +8,7 @@ declare module "express-serve-static-core" {
 
 interface UserPayload {
   id: number;
-  // Дополнительные поля, если нужно (но лучше минимизировать)
+  userType: "buyer" | "seller" | "manager" | "admin";
 }
 
-export {}; // Важно для модульной системы
+export {}; // Не удаляй — нужно для модулей

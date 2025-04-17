@@ -10,6 +10,8 @@ import swaggerSpec from "./swaggerOptions "; // путь зависит от т�
 
 // Импортируем маршруты для материалов
 import materialRoutes from "./routes/materialRoutes";
+// Импортируем маршруты для заказов
+import orderRoutes from "./routes/orderRoutes"; // Добавляем маршруты для заказов
 
 const app = express();
 
@@ -31,6 +33,7 @@ app.use(limiter);
 // Маршруты
 app.use("/api/users", authRoutes);
 app.use("/api/materials", materialRoutes);
+app.use("/api/orders", orderRoutes); // Добавляем маршруты для заказов
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

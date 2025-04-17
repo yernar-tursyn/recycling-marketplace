@@ -2,9 +2,15 @@ import { Request, Response } from "express";
 import UserModel, { UserInput } from "../models/userModel";
 import { generateToken, comparePasswords } from "../utils/passwordUtils";
 import { registerValidator, validate } from "../validators/authValidator";
+import { body, validationResult } from "express-validator";
 
 interface AuthenticatedRequest extends Request {
-  user?: { id: number };
+  user?: UserPayload; // Теперь user будет иметь тип UserPayload
+}
+
+interface UserPayload {
+  id: number;
+  userType: "buyer" | "seller" | "manager" | "admin";
 }
 
 // Регистрация пользователя
