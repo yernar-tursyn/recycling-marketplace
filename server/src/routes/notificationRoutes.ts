@@ -25,7 +25,7 @@ const router = Router();
  * @swagger
  * /api/notifications/create:
  *   post:
- *     summary: Создать новое уведомление (need to be admin or manager)
+ *     summary: Создать новое уведомление
  *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
