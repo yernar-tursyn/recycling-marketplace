@@ -27,8 +27,8 @@ class MaterialModel {
     try {
       const [result] = await db.execute(
         `INSERT INTO materials 
-         (name, category, description, price, unit, location, image_url) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (name, category_id, description, price, unit, image_url) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
         [
           material.name,
           material.category_id,
@@ -101,7 +101,7 @@ class MaterialModel {
 
   static async search(
     query?: string,
-    category?: number,
+    category_id?: number,
     sort?: string
   ): Promise<Material[]> {
     let sql = "SELECT * FROM materials WHERE 1=1";
@@ -112,9 +112,9 @@ class MaterialModel {
       params.push(`%${query}%`, `%${query}%`);
     }
 
-    if (category) {
-      sql += " AND category = ?";
-      params.push(category);
+    if (category_id) {
+      sql += " AND category_id = ?";
+      params.push(category_id);
     }
 
     if (sort === "price") {

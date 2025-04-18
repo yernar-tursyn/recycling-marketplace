@@ -49,11 +49,11 @@ export const createMaterial = async (req: Request, res: Response) => {
 
 export const searchMaterials = async (req: Request, res: Response) => {
   try {
-    const { query, category, sort } = req.query;
+    const { query, category_id, sort } = req.query;
 
     let categoryNumber: number | undefined;
-    if (category) {
-      categoryNumber = Number(category);
+    if (category_id) {
+      categoryNumber = Number(category_id);
       if (isNaN(categoryNumber)) {
         return res
           .status(400)
