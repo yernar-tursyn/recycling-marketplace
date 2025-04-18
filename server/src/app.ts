@@ -12,6 +12,8 @@ import swaggerSpec from "./swaggerOptions "; // путь зависит от т�
 import materialRoutes from "./routes/materialRoutes";
 // Импортируем маршруты для заказов
 import orderRoutes from "./routes/orderRoutes"; // Добавляем маршруты для заказов
+// Импортируем маршруты для уведомлений
+import notificationRoutes from "./routes/notificationRoutes"; // Добавляем маршруты для уведомлений
 
 const app = express();
 
@@ -33,7 +35,8 @@ app.use(limiter);
 // Маршруты
 app.use("/api/users", authRoutes);
 app.use("/api/materials", materialRoutes);
-app.use("/api/orders", orderRoutes); // Добавляем маршруты для заказов
+app.use("/api/orders", orderRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
