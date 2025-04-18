@@ -4,9 +4,9 @@ import { QueryError } from "mysql2";
 
 export const createMaterial = async (req: Request, res: Response) => {
   try {
-    const { name, category, price, location } = req.body;
+    const { name, category, price } = req.body;
 
-    if (!name || !category || !price || !location) {
+    if (!name || !category || !price) {
       return res.status(400).json({
         error: "Необходимо заполнить все обязательные поля",
       });
