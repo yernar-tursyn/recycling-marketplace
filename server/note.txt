@@ -1,0 +1,27 @@
+
+Хорошо, тогда откоректирую materials
+`materials` - Номенклатура
+  `id` 
+  `name` 
+  `category`  '1-Пластик, 2-Макулатура, 3-Стекло, 4-Металл, 5-Кожа/резина/ветошь, 6-Органика, 7-Отходы',
+  `description` 
+  `price` 
+  `unit` 
+  `location` 
+  `image_url` 
+
+Добавлю
+`bins` - Склад
+  `id` 
+  `name` 
+  `location`
+
+`stocks` - Остаток
+  `id` 
+  `material_id`
+  `bin_id` 
+  `quantity` 
+  `seller_id` 
+  `status`
+
+Контрагент, Заказ и Уведомления уже есть 

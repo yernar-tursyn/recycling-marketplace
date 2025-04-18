@@ -9,10 +9,8 @@ interface Material extends RowDataPacket {
   category: number;
   description?: string;
   price: number;
-  quantity: number;
   unit: string;
   location: string;
-  seller_id: number;
   image_url?: string;
 }
 
@@ -21,10 +19,8 @@ interface MaterialInput {
   category: number;
   description?: string;
   price: number;
-  quantity: number;
   unit?: string;
   location: string;
-  seller_id: number;
   image_url?: string;
 }
 
@@ -33,17 +29,15 @@ class MaterialModel {
     try {
       const [result] = await db.execute(
         `INSERT INTO materials 
-         (name, category, description, price, quantity, unit, location, seller_id, image_url) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (name, category, description, price, unit, location, image_url) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           material.name,
           material.category,
           material.description || null,
           material.price,
-          material.quantity,
           material.unit || "kg",
           material.location,
-          material.seller_id,
           material.image_url || null,
         ]
       );
@@ -55,7 +49,7 @@ class MaterialModel {
       return (result as any).insertId;
     } catch (error) {
       console.error("Ошибка в MaterialModel.create:", error);
-      throw error; // Пробрасываем ошибку дальше
+      throw error;
     }
   }
 
@@ -76,7 +70,6 @@ class MaterialModel {
     id: number,
     material: Partial<MaterialInput>
   ): Promise<boolean> {
-    // Фильтруем поля для обновления
     const fieldsToUpdate = Object.entries(material)
       .filter(([_, value]) => value !== undefined)
       .map(([key]) => key);
@@ -85,7 +78,6 @@ class MaterialModel {
       throw new Error("No fields to update");
     }
 
-    // Строим динамический запрос
     const setClause = fieldsToUpdate.map((field) => `${field} = ?`).join(", ");
     const values = fieldsToUpdate.map(
       (field) => material[field as keyof typeof material]
@@ -130,8 +122,6 @@ class MaterialModel {
 
     if (sort === "price") {
       sql += " ORDER BY price";
-    } else if (sort === "date") {
-      sql += " ORDER BY created_at DESC";
     }
 
     const [rows] = await db.query<Material[]>(sql, params);

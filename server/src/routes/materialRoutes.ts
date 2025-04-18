@@ -36,9 +36,7 @@ const router = Router();
  *               - name
  *               - category
  *               - price
- *               - quantity
  *               - location
- *               - seller_id
  *             properties:
  *               name:
  *                 type: string
@@ -46,23 +44,20 @@ const router = Router();
  *                 type: string
  *               price:
  *                 type: number
- *               quantity:
- *                 type: number
  *               location:
  *                 type: string
- *               seller_id:
- *                 type: integer
  *               description:
  *                 type: string
  *               image_url:
  *                 type: string
  *               unit:
  *                 type: string
+ *                 default: kg
  *     responses:
  *       201:
  *         description: Материал успешно создан
  *       400:
- *         description: Ошибка валидации или продавец не найден
+ *         description: Ошибка валидации
  *       500:
  *         description: Внутренняя ошибка сервера
  */
@@ -84,12 +79,12 @@ router.post("/", authMiddleware, createMaterial);
  *         name: category
  *         schema:
  *           type: string
- *         description: Категория материала
+ *         description: Категория материала (1-7)
  *       - in: query
  *         name: sort
  *         schema:
  *           type: string
- *         description: Критерий сортировки (например price_asc, price_desc)
+ *         description: Критерий сортировки (price)
  *     responses:
  *       200:
  *         description: Результаты поиска
@@ -156,7 +151,21 @@ router.get("/:id", getMaterialById);
  *         application/json:
  *           schema:
  *             type: object
- *             description: Данные для обновления
+ *             properties:
+ *               name:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               location:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               image_url:
+ *                 type: string
+ *               unit:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Материал успешно обновлён
@@ -200,36 +209,11 @@ router.put("/:id", authMiddleware, updateMaterial);
  *                   example: true
  *       401:
  *         description: Ошибка авторизации
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Недействительный токен
  *       404:
  *         description: Материал не найден
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Материал не найден
  *       500:
  *         description: Внутренняя ошибка сервера при удалении
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: Ошибка при удалении материала
  */
-
 router.delete("/:id", authMiddleware, deleteMaterial);
 
 export default router;

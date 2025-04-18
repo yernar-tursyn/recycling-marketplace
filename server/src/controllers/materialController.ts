@@ -4,9 +4,9 @@ import { QueryError } from "mysql2";
 
 export const createMaterial = async (req: Request, res: Response) => {
   try {
-    const { name, category, price, quantity, location, seller_id } = req.body;
+    const { name, category, price, location } = req.body;
 
-    if (!name || !category || !price || !quantity || !location || !seller_id) {
+    if (!name || !category || !price || !location) {
       return res.status(400).json({
         error: "Необходимо заполнить все обязательные поля",
       });
@@ -21,9 +21,7 @@ export const createMaterial = async (req: Request, res: Response) => {
       name,
       category,
       price: Number(price),
-      quantity: Number(quantity),
       location,
-      seller_id: Number(seller_id),
       description: req.body.description || null,
       image_url: req.body.image_url || null,
       unit: req.body.unit || "kg",
@@ -34,24 +32,8 @@ export const createMaterial = async (req: Request, res: Response) => {
 
     return res.status(201).json(createdMaterial);
   } catch (error: unknown) {
-    // Типизируем ошибку
     if (error instanceof Error) {
       console.error("Ошибка создания материала:", error.message);
-
-      // Проверяем MySQL ошибки
-      if (isQueryError(error)) {
-        console.error("MySQL Error Code:", error.code);
-
-        if (error.code === "ER_NO_REFERENCED_ROW_2") {
-          return res.status(400).json({
-            error: "Указанный продавец не существует",
-            details:
-              process.env.NODE_ENV === "development"
-                ? error.message
-                : undefined,
-          });
-        }
-      }
 
       return res.status(500).json({
         error: "Ошибка при создании материала",
@@ -70,7 +52,6 @@ export const searchMaterials = async (req: Request, res: Response) => {
   try {
     const { query, category, sort } = req.query;
 
-    // Преобразуем category в number, если он предоставлен
     let categoryNumber: number | undefined;
     if (category) {
       categoryNumber = Number(category);
@@ -83,7 +64,7 @@ export const searchMaterials = async (req: Request, res: Response) => {
 
     const materials = await MaterialModel.search(
       query as string,
-      categoryNumber, // Теперь передаем number или undefined
+      categoryNumber,
       sort as string
     );
     res.json(materials);
@@ -115,7 +96,6 @@ export const updateMaterial = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Материал не найден" });
     }
 
-    // Получаем обновлённый материал для ответа
     const updatedMaterial = await MaterialModel.findById(Number(req.params.id));
     res.json({
       success: true,
@@ -162,7 +142,6 @@ export const deleteMaterial = async (req: Request, res: Response) => {
   }
 };
 
-// Вспомогательная функция для проверки типа MySQL ошибки
 function isQueryError(error: unknown): error is QueryError {
   return typeof error === "object" && error !== null && "code" in error;
 }
