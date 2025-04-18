@@ -14,8 +14,7 @@ import materialRoutes from "./routes/materialRoutes";
 import orderRoutes from "./routes/orderRoutes"; // Добавляем маршруты для заказов
 // Импортируем маршруты для уведомлений
 import notificationRoutes from "./routes/notificationRoutes"; // Добавляем маршруты для уведомлений
-import binRoutes from "./routes/binRoutes"; // Добавляем маршруты для контейнеров
-
+import storageRoutes from "./routes/storageRoutes"; // Добавляем маршруты для хранения
 const app = express();
 
 //swagger
@@ -38,7 +37,7 @@ app.use("/api/users", authRoutes);
 app.use("/api/materials", materialRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/bins", binRoutes);
+app.use("/api/storage", storageRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
