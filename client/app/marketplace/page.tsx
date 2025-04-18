@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Heart, Search, Eye } from "lucide-react";
+import { Heart, Search } from "lucide-react";
 import { useFavorites } from "@/context/favorites-context";
 import { getMaterials } from "@/services/material-service";
 import type { MaterialType } from "@/types/material";
@@ -72,7 +72,11 @@ export default function MarketplacePage() {
   }, [searchQuery, materialType, priceRange, materials]);
 
   const handleMaterialClick = (id: string) => {
-    router.push(`/marketplace/${id}`);
+    const material = filteredMaterials.find((m) => m.id === id);
+
+    if (material) {
+      router.push(`/marketplace/${id}`);
+    }
   };
 
   return (
@@ -89,7 +93,7 @@ export default function MarketplacePage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Тип материала</label>
                 <Select value={materialType} onValueChange={setMaterialType}>
-                  <SelectTrigger>
+                  <SelectTrigger className="outline-none focus:outline-none focus:ring-0 focus:ring-transparent">
                     <SelectValue placeholder="Выберите тип" />
                   </SelectTrigger>
                   <SelectContent>
@@ -104,7 +108,7 @@ export default function MarketplacePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Цена за кг (₽)</label>
+                <label className="text-sm font-medium">Цена за кг (₸)</label>
                 <div className="pt-5">
                   <Slider
                     defaultValue={[0, 1000]}
@@ -114,8 +118,8 @@ export default function MarketplacePage() {
                     onValueChange={setPriceRange}
                   />
                   <div className="flex justify-between mt-2">
-                    <span>{priceRange[0]} ₽</span>
-                    <span>{priceRange[1]} ₽</span>
+                    <span>{priceRange[0]} ₸</span>
+                    <span>{priceRange[1]} ₸</span>
                   </div>
                 </div>
               </div>
@@ -155,12 +159,12 @@ export default function MarketplacePage() {
                       style={{ backgroundImage: `url(${material.image})` }}
                       onClick={() => handleMaterialClick(material.id)}
                     />
-                    <CardHeader className="p-4">
+                    <CardHeader
+                      className="p-4 cursor-pointer"
+                      onClick={() => handleMaterialClick(material.id)}
+                    >
                       <div className="flex justify-between items-start">
-                        <div
-                          className="cursor-pointer"
-                          onClick={() => handleMaterialClick(material.id)}
-                        >
+                        <div>
                           <CardTitle className="text-lg">
                             {material.name}
                           </CardTitle>
@@ -184,12 +188,18 @@ export default function MarketplacePage() {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0">
+                    <CardContent
+                      className="p-4 pt-0 cursor-pointer"
+                      onClick={() => handleMaterialClick(material.id)}
+                    >
                       <p className="text-sm line-clamp-2">
                         {material.description}
                       </p>
                     </CardContent>
-                    <CardFooter className="p-4 flex justify-between">
+                    <CardFooter
+                      className="p-4 flex justify-between cursor-pointer"
+                      onClick={() => handleMaterialClick(material.id)}
+                    >
                       <Badge
                         variant={
                           material.type === "buy" ? "default" : "outline"
@@ -197,17 +207,7 @@ export default function MarketplacePage() {
                       >
                         {material.type === "buy" ? "Покупка" : "Продажа"}
                       </Badge>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold">{material.price} ₽/кг</span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleMaterialClick(material.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Просмотр
-                        </Button>
-                      </div>
+                      <span className="font-bold">{material.price} ₸/кг</span>
                     </CardFooter>
                   </Card>
                 ))

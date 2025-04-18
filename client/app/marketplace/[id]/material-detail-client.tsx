@@ -1,5 +1,7 @@
 "use client";
 
+import { DialogTrigger } from "@/components/ui/dialog";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
@@ -13,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -21,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { getMaterialById } from "@/services/material-service";
 import { createApplication } from "@/services/application-service";
-import { createApplicationNotification } from "@/services/notification-service";
 import type { MaterialType } from "@/types/material";
 import {
   Heart,
@@ -79,27 +79,32 @@ export function MaterialDetailClient({ materialId }: { materialId: string }) {
           message ||
           `Заявка на ${actionType} ${material.name} в количестве ${quantity} кг`,
         materialType: material.type,
+        materialId: material.id,
+        sellerUserId: material.userId,
         quantity: Number(quantity),
         price: material.price,
         userId: user.id,
       });
 
-      await createApplicationNotification(
-        application.id,
-        application.title,
-        user.id,
-        material.userId
-      );
+      console.log("Создана заявка:", application);
 
       toast({
         title: "Заявка создана",
-        description: "Ваша заявка была успешно создана",
+        description:
+          user.type === "buyer"
+            ? "Ваша заявка была успешно создана и отправлена продавцу"
+            : "Ваша заявка была успешно создана и отправлена на модерацию",
       });
 
       setIsDialogOpen(false);
       setQuantity("1");
       setMessage("");
+
+      setTimeout(() => {
+        router.push("/profile/applications");
+      }, 1500);
     } catch (error) {
+      console.error("Ошибка при создании заявки:", error);
       toast({
         variant: "destructive",
         title: "Ошибка",

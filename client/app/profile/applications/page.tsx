@@ -33,13 +33,14 @@ import {
 } from "@/components/ui/select";
 import {
   getUserApplications,
-  createApplication,
   updateApplication,
   deleteApplication,
+  updateApplicationStatus,
+  createApplicationStatusNotification,
 } from "@/services/application-service";
 import type { ApplicationType } from "@/types/application";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 export default function ApplicationsPage() {
   const { user, isLoading } = useAuth();
@@ -47,7 +48,6 @@ export default function ApplicationsPage() {
   const { toast } = useToast();
 
   const [applications, setApplications] = useState<ApplicationType[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedApplication, setSelectedApplication] =
@@ -76,7 +76,8 @@ export default function ApplicationsPage() {
     if (!user) return;
 
     try {
-      const data = await getUserApplications(user.id);
+      const data = await getUserApplications(user.id, user.type);
+      console.log("Загруженные заявки:", data);
       setApplications(data);
     } catch (error) {
       toast({
@@ -93,36 +94,6 @@ export default function ApplicationsPage() {
     setMaterialType("paper");
     setQuantity("0");
     setPrice("0");
-  };
-
-  const handleCreateApplication = async () => {
-    if (!user) return;
-
-    try {
-      await createApplication({
-        title,
-        description,
-        materialType,
-        quantity: Number(quantity),
-        price: Number(price),
-        userId: user.id,
-      });
-
-      toast({
-        title: "Заявка создана",
-        description: "Ваша заявка была успешно создана",
-      });
-
-      resetForm();
-      setIsCreating(false);
-      fetchApplications();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось создать заявку",
-      });
-    }
   };
 
   const handleEditApplication = async () => {
@@ -193,6 +164,64 @@ export default function ApplicationsPage() {
     setIsDeleting(true);
   };
 
+  const handleUpdateApplicationStatus = async (
+    applicationId: string,
+    newStatus: string
+  ) => {
+    try {
+      const updatedApp = await updateApplicationStatus(
+        applicationId,
+        newStatus
+      );
+
+      fetchApplications();
+
+      if (user) {
+        await createApplicationStatusNotification(
+          applicationId,
+          updatedApp.title,
+          updatedApp.userId,
+          newStatus,
+          user.id
+        );
+      }
+
+      if (newStatus === "completed" && updatedApp.materialId) {
+        try {
+          const { updateMaterialQuantity } = await import(
+            "@/services/material-service"
+          );
+
+          await updateMaterialQuantity(
+            updatedApp.materialId,
+            updatedApp.quantity
+          );
+
+          console.log(
+            `Количество материала ${updatedApp.materialId} уменьшено на ${updatedApp.quantity}`
+          );
+        } catch (error) {
+          console.error("Ошибка при обновлении количества материала:", error);
+        }
+      }
+
+      toast({
+        title:
+          newStatus === "completed" ? "Заявка принята" : "Заявка отклонена",
+        description:
+          newStatus === "completed"
+            ? "Заявка успешно принята. Покупатель получил уведомление."
+            : "Заявка отклонена. Покупатель получил уведомление.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить статус заявки",
+      });
+    }
+  };
+
   if (isLoading || !user) {
     return null;
   }
@@ -200,11 +229,27 @@ export default function ApplicationsPage() {
   return (
     <div className="container py-10">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Мои заявки</h1>
-        <Button onClick={() => setIsCreating(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Создать заявку
-        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">
+            {user.type === "seller" ? "Заявки на материалы" : "Мои заявки"}
+          </h1>
+          {user.type === "seller" ? (
+            <p className="text-muted-foreground mt-1">
+              Здесь вы можете просматривать и обрабатывать заявки от покупателей
+              на ваши материалы
+            </p>
+          ) : (
+            <p className="text-muted-foreground mt-1">
+              Здесь вы можете просматривать и управлять своими заявками на
+              покупку материалов
+            </p>
+          )}
+        </div>
+        {user.type === "buyer" && (
+          <Button onClick={() => router.push("/marketplace")}>
+            Перейти на витрину
+          </Button>
+        )}
       </div>
 
       {applications.length > 0 ? (
@@ -220,6 +265,8 @@ export default function ApplicationsPage() {
                         ? "default"
                         : application.status === "completed"
                         ? "secondary"
+                        : application.status === "pending"
+                        ? "outline"
                         : "secondary"
                     }
                     className={
@@ -232,12 +279,22 @@ export default function ApplicationsPage() {
                       ? "Активна"
                       : application.status === "completed"
                       ? "Завершена"
-                      : "В обработке"}
+                      : application.status === "pending"
+                      ? user.type === "seller"
+                        ? "На модерации"
+                        : "На проверке"
+                      : "Отменена"}
                   </Badge>
                 </div>
                 <CardDescription>
                   Создана:{" "}
                   {new Date(application.createdAt).toLocaleDateString()}
+                  {user.type === "seller" && application.userId !== user.id && (
+                    <span className="ml-2">(от покупателя)</span>
+                  )}
+                  {user.type === "seller" && application.userId === user.id && (
+                    <span className="ml-2">(ваша заявка)</span>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -267,114 +324,104 @@ export default function ApplicationsPage() {
                       {application.price} ₽/кг
                     </span>
                   </div>
+                  {user.type === "seller" && application.userId !== user.id && (
+                    <div>
+                      <span className="text-sm text-muted-foreground">
+                        Покупатель:{" "}
+                      </span>
+                      <span className="text-sm font-medium">
+                        {application.userName || "Пользователь"}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => openEditDialog(application)}
-                  disabled={application.status !== "active"}
-                >
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Редактировать
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => openDeleteDialog(application)}
-                  disabled={application.status !== "active"}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Удалить
-                </Button>
+                {application.userId === user.id && (
+                  <>
+                    {application.status === "pending" && (
+                      <Badge variant="secondary">На проверке</Badge>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditDialog(application)}
+                      disabled={
+                        application.status !== "active" &&
+                        application.status !== "pending"
+                      }
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Редактировать
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => openDeleteDialog(application)}
+                      disabled={
+                        application.status !== "active" &&
+                        application.status !== "pending"
+                      }
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Удалить
+                    </Button>
+                  </>
+                )}
+                {user.type === "seller" &&
+                  application.userId !== user.id &&
+                  application.status === "active" &&
+                  application.sellerUserId === user.id && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          handleUpdateApplicationStatus(
+                            application.id,
+                            "cancelled"
+                          )
+                        }
+                      >
+                        Отклонить
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() =>
+                          handleUpdateApplicationStatus(
+                            application.id,
+                            "completed"
+                          )
+                        }
+                      >
+                        Принять
+                      </Button>
+                    </>
+                  )}
               </CardFooter>
             </Card>
           ))}
         </div>
       ) : (
         <div className="text-center py-10">
-          <p className="text-muted-foreground">У вас пока нет заявок</p>
-          <Button className="mt-4" onClick={() => setIsCreating(true)}>
-            Создать заявку
-          </Button>
+          <p className="text-muted-foreground">
+            {user.type === "seller"
+              ? "У вас пока нет заявок на материалы"
+              : "У вас пока нет заявок на покупку материалов"}
+          </p>
+          {user.type === "buyer" && (
+            <Button
+              className="mt-4"
+              onClick={() => router.push("/marketplace")}
+            >
+              Перейти на витрину
+            </Button>
+          )}
         </div>
       )}
 
-      <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Создание заявки</DialogTitle>
-            <DialogDescription>
-              Заполните форму для создания новой заявки
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="title">Заголовок</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Например: Сдам 50 кг макулатуры"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="description">Описание</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Подробное описание вашей заявки"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="material-type">Тип материала</Label>
-              <Select value={materialType} onValueChange={setMaterialType}>
-                <SelectTrigger id="material-type">
-                  <SelectValue placeholder="Выберите тип материала" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="paper">Бумага</SelectItem>
-                  <SelectItem value="plastic">Пластик</SelectItem>
-                  <SelectItem value="glass">Стекло</SelectItem>
-                  <SelectItem value="metal">Металл</SelectItem>
-                  <SelectItem value="electronics">Электроника</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="quantity">Количество (кг)</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  min="0"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="price">Цена (₽/кг)</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  min="0"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreating(false)}>
-              Отмена
-            </Button>
-            <Button onClick={handleCreateApplication}>Создать</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <DialogContent>
           <DialogHeader>

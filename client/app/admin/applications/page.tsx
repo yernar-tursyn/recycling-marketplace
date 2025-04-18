@@ -37,6 +37,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { CheckCircle, MoreHorizontal, XCircle, Eye } from "lucide-react";
 import type { ApplicationType } from "@/types/application";
 import { useRouter } from "next/navigation";
+import { getAllUsers } from "@/services/user-service";
 
 export default function ApplicationsPage() {
   const { user } = useAuth();
@@ -44,26 +45,35 @@ export default function ApplicationsPage() {
   const router = useRouter();
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchApplications = async () => {
+    const fetchData = async () => {
       try {
         const data = await getAllApplications();
         setApplications(data);
+
+        const usersData = await getAllUsers();
+        setUsers(usersData);
       } catch (error) {
-        console.error("Error fetching applications:", error);
+        console.error("Error fetching data:", error);
         toast({
           variant: "destructive",
           title: "Ошибка",
-          description: "Не удалось загрузить список заявок",
+          description: "Не удалось загрузить данные",
         });
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchApplications();
+    fetchData();
   }, [toast]);
+
+  const getUserTypeFromId = (userId: string) => {
+    const user = users.find((u) => u.id === userId);
+    return user ? user.type : "unknown";
+  };
 
   const handleUpdateStatus = async (
     applicationId: string,
@@ -183,6 +193,13 @@ export default function ApplicationsPage() {
                     </TableCell>
                     <TableCell>
                       {application.userName || "Пользователь"}
+                      {application.userId && (
+                        <Badge variant="outline" className="ml-2">
+                          {getUserTypeFromId(application.userId) === "seller"
+                            ? "Продавец"
+                            : "Покупатель"}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       {getMaterialTypeLabel(application.materialType)}
@@ -196,6 +213,8 @@ export default function ApplicationsPage() {
                             ? "default"
                             : application.status === "completed"
                             ? "secondary"
+                            : application.status === "pending"
+                            ? "outline"
                             : "destructive"
                         }
                         className={
@@ -208,6 +227,8 @@ export default function ApplicationsPage() {
                           ? "Активна"
                           : application.status === "completed"
                           ? "Завершена"
+                          : application.status === "pending"
+                          ? "Ожидает модерации"
                           : "Отменена"}
                       </Badge>
                     </TableCell>
@@ -236,6 +257,16 @@ export default function ApplicationsPage() {
                             <span>Просмотреть детали</span>
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          {application.status === "pending" && (
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleUpdateStatus(application.id, "active")
+                              }
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              <span>Активировать</span>
+                            </DropdownMenuItem>
+                          )}
                           {application.status !== "completed" && (
                             <DropdownMenuItem
                               onClick={() =>
@@ -256,16 +287,17 @@ export default function ApplicationsPage() {
                               <span>Отменить</span>
                             </DropdownMenuItem>
                           )}
-                          {application.status !== "active" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleUpdateStatus(application.id, "active")
-                              }
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" />
-                              <span>Активировать</span>
-                            </DropdownMenuItem>
-                          )}
+                          {application.status !== "active" &&
+                            application.status !== "pending" && (
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleUpdateStatus(application.id, "active")
+                                }
+                              >
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                <span>Активировать</span>
+                              </DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

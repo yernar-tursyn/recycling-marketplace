@@ -18,7 +18,14 @@ import { getUserMaterials } from "@/services/material-service";
 import type { ApplicationType } from "@/types/application";
 import type { MaterialType } from "@/types/material";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, FileText, MapPin, Package, Plus } from "lucide-react";
+import {
+  CalendarDays,
+  FileText,
+  MapPin,
+  Package,
+  Plus,
+  Pencil,
+} from "lucide-react";
 
 export default function ProfilePage() {
   const { user, isLoading } = useAuth();
@@ -37,7 +44,7 @@ export default function ProfilePage() {
       if (user) {
         const fetchData = async () => {
           try {
-            const appsData = await getUserApplications(user.id);
+            const appsData = await getUserApplications(user.id, user.type);
             setApplications(appsData);
 
             if (user.type === "seller") {
@@ -239,7 +246,9 @@ export default function ProfilePage() {
                             <div className="text-2xl font-bold">
                               {
                                 applications.filter(
-                                  (app) => app.status === "active"
+                                  (app) =>
+                                    app.sellerUserId === user.id &&
+                                    app.userId !== user.id
                                 ).length
                               }
                             </div>
@@ -301,12 +310,20 @@ export default function ProfilePage() {
                         {materials.map((material) => (
                           <Card key={material.id} className="overflow-hidden">
                             <div
-                              className="h-40 bg-muted bg-cover bg-center"
+                              className="h-40 bg-muted bg-cover bg-center cursor-pointer"
                               style={{
                                 backgroundImage: `url(${material.image})`,
                               }}
+                              onClick={() =>
+                                router.push(`/marketplace/${material.id}`)
+                              }
                             />
-                            <CardHeader className="p-4">
+                            <CardHeader
+                              className="p-4 cursor-pointer"
+                              onClick={() =>
+                                router.push(`/marketplace/${material.id}`)
+                              }
+                            >
                               <div className="flex justify-between">
                                 <CardTitle className="text-lg">
                                   {material.name}
@@ -329,7 +346,12 @@ export default function ProfilePage() {
                               </div>
                               <CardDescription>{material.type}</CardDescription>
                             </CardHeader>
-                            <CardContent className="p-4 pt-0">
+                            <CardContent
+                              className="p-4 pt-0 cursor-pointer"
+                              onClick={() =>
+                                router.push(`/marketplace/${material.id}`)
+                              }
+                            >
                               <div className="flex justify-between items-center">
                                 <span className="font-bold">
                                   {material.price} ₽/кг
@@ -346,17 +368,13 @@ export default function ProfilePage() {
                                     `/profile/materials/edit/${material.id}`
                                   )
                                 }
-                              >
-                                Редактировать
-                              </Button>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() =>
-                                  router.push(`/marketplace/${material.id}`)
+                                disabled={
+                                  material.status !== "active" &&
+                                  material.status !== "pending"
                                 }
                               >
-                                Просмотр
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Редактировать
                               </Button>
                             </div>
                           </Card>
@@ -460,14 +478,10 @@ export default function ProfilePage() {
                             </div>
                           </CardContent>
                           {user.type === "seller" &&
-                            application.status === "active" && (
-                              <div className="p-4 border-t flex justify-end space-x-2">
-                                <Button variant="outline" size="sm">
-                                  Отклонить
-                                </Button>
-                                <Button variant="default" size="sm">
-                                  Принять
-                                </Button>
+                            application.userId !== user.id && (
+                              <div className="p-4 border-t text-sm text-muted-foreground text-right">
+                                Для управления заявками перейдите в раздел
+                                "Заявки на материалы"
                               </div>
                             )}
                         </Card>

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getMaterialById } from "@/services/material-service";
 import type { MaterialType } from "@/types/material";
-import { Heart, Eye } from "lucide-react";
+import { Heart } from "lucide-react";
 
 export default function FavoritesPage() {
   const { user, isLoading } = useAuth();
@@ -87,16 +87,14 @@ export default function FavoritesPage() {
                 style={{ backgroundImage: `url(${material.image})` }}
                 onClick={() => handleMaterialClick(material.id)}
               />
-              <CardHeader className="p-4">
+              <CardHeader
+                className="p-4 cursor-pointer"
+                onClick={() => handleMaterialClick(material.id)}
+              >
                 <div className="flex justify-between items-start">
                   <div>
-                    <div
-                      className="cursor-pointer"
-                      onClick={() => handleMaterialClick(material.id)}
-                    >
-                      <CardTitle className="text-lg">{material.name}</CardTitle>
-                      <CardDescription>{material.type}</CardDescription>
-                    </div>
+                    <CardTitle className="text-lg">{material.name}</CardTitle>
+                    <CardDescription>{material.type}</CardDescription>
                   </div>
                   <Button
                     variant="ghost"
@@ -110,26 +108,22 @@ export default function FavoritesPage() {
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="p-4 pt-0">
+              <CardContent
+                className="p-4 pt-0 cursor-pointer"
+                onClick={() => handleMaterialClick(material.id)}
+              >
                 <p className="text-sm line-clamp-2">{material.description}</p>
               </CardContent>
-              <CardFooter className="p-4 flex justify-between">
+              <CardFooter
+                className="p-4 flex justify-between cursor-pointer"
+                onClick={() => handleMaterialClick(material.id)}
+              >
                 <Badge
                   variant={material.dealType === "buy" ? "default" : "outline"}
                 >
                   {material.dealType === "buy" ? "Покупка" : "Продажа"}
                 </Badge>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold">{material.price} ₽/кг</span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleMaterialClick(material.id)}
-                  >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Просмотр
-                  </Button>
-                </div>
+                <span className="font-bold">{material.price} ₸/кг</span>
               </CardFooter>
             </Card>
           ))}

@@ -237,14 +237,14 @@ export default function ApplicationDetailPage({
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">
                   Цена
                 </h3>
-                <p className="font-medium">{application.price} ₽/кг</p>
+                <p className="font-medium">{application.price} ₸/кг</p>
               </div>
               <div>
                 <h3 className="text-sm font-medium text-muted-foreground mb-1">
                   Общая стоимость
                 </h3>
                 <p className="font-medium">
-                  {application.price * application.quantity} ₽
+                  {application.price * application.quantity} ₸
                 </p>
               </div>
             </div>

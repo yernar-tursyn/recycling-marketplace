@@ -149,7 +149,7 @@ export default function MaterialsPage() {
               <TableRow>
                 <TableHead>Название</TableHead>
                 <TableHead>Тип</TableHead>
-                <TableHead>Цена (₽/кг)</TableHead>
+                <TableHead>Цена (₸/кг)</TableHead>
                 <TableHead>Количество (кг)</TableHead>
                 <TableHead>Продавец</TableHead>
                 <TableHead>Статус</TableHead>

@@ -11,24 +11,28 @@ const getApplicationsFromStorage = (): ApplicationType[] => {
   }
 
   const initialApplications = [
-    {
-      id: uuidv4(),
-      title: "Сдам 50 кг макулатуры",
-      description: "Газеты, журналы, книги в хорошем состоянии",
-      materialType: "paper",
-      quantity: 50,
-      price: 15,
-      userId: "user1",
-      userName: "Иван Петров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
+    // {
+    //   id: uuidv4(),
+    //   title: "Сдам 50 кг макулатуры",
+    //   description: "Газеты, журналы, книги в хорошем состоянии",
+    //   materialType: "paper",
+    //   materialId: "material1",
+    //   sellerUserId: "user1", // Изменено с user2 на user1, чтобы это была заявка самого продавца
+    //   quantity: 50,
+    //   price: 15,
+    //   userId: "user1", // Теперь userId и sellerUserId совпадают, это заявка самого продавца
+    //   userName: "Иван Петров",
+    //   status: "active",
+    //   createdAt: new Date().toISOString(),
+    //   updatedAt: new Date().toISOString(),
+    // },
     {
       id: uuidv4(),
       title: "Куплю алюминиевые банки",
       description: "Принимаю алюминиевые банки от напитков в любом количестве",
       materialType: "metal",
+      materialId: "material2",
+      sellerUserId: "user1",
       quantity: 100,
       price: 80,
       userId: "user2",
@@ -42,6 +46,8 @@ const getApplicationsFromStorage = (): ApplicationType[] => {
       title: "Сдам старую электронику",
       description: "Старые компьютеры, телефоны, платы",
       materialType: "electronics",
+      materialId: "material3",
+      sellerUserId: "user2",
       quantity: 30,
       price: 200,
       userId: "user1",
@@ -96,26 +102,74 @@ export const createApplication = async (
   const applications = getApplicationsFromStorage();
 
   let userName = "Пользователь";
+  let userType = "buyer";
   try {
     const users = JSON.parse(localStorage.getItem("eco_market_users") || "[]");
     const user = users.find((u: any) => u.id === application.userId);
     if (user) {
       userName = user.name;
+      userType = user.type;
     }
   } catch (error) {
-    console.error("Error getting user name:", error);
+    console.error("Error getting user info:", error);
   }
+
+  const status = userType === "buyer" ? "active" : "pending";
 
   const newApplication: ApplicationType = {
     ...application,
     id: uuidv4(),
-    status: "active",
+    status: status,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     userName,
   };
 
   saveApplications([...applications, newApplication]);
+
+  if (userType === "seller") {
+    try {
+      const { createNotificationForStaff } = await import(
+        "@/services/notification-service"
+      );
+      await createNotificationForStaff(
+        "Новая заявка требует проверки",
+        `Продавец ${userName} создал новую заявку "${newApplication.title}"`,
+        {
+          type: "warning",
+          actionUrl: "/admin/applications",
+          actionText: "Проверить заявку",
+          relatedUserId: application.userId,
+          relatedEntityId: newApplication.id,
+          relatedEntityType: "application",
+        }
+      );
+    } catch (error) {
+      console.error("Error sending notification to admins:", error);
+    }
+  }
+  else if (userType === "buyer" && application.sellerUserId) {
+    try {
+      const { createNotificationForUser } = await import(
+        "@/services/notification-service"
+      );
+      await createNotificationForUser(
+        application.sellerUserId,
+        "Новая заявка на ваш материал",
+        `Покупатель ${userName} создал новую заявку "${newApplication.title}"`,
+        {
+          type: "info",
+          actionUrl: "/profile/applications",
+          actionText: "Просмотреть заявку",
+          relatedUserId: application.userId,
+          relatedEntityId: newApplication.id,
+          relatedEntityType: "application",
+        }
+      );
+    } catch (error) {
+      console.error("Error sending notification to seller:", error);
+    }
+  }
 
   return newApplication;
 };
@@ -175,9 +229,54 @@ export const deleteApplication = async (id: string) => {
   return { success: true };
 };
 
-export const getUserApplications = async (userId: string) => {
+export const getUserApplications = async (
+  userId: string,
+  userType?: string
+) => {
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   const applications = getApplicationsFromStorage();
+
+  if (userType === "seller") {
+    return applications.filter(
+      (a) =>
+        a.sellerUserId === userId || 
+        a.userId === userId 
+    );
+  }
+
   return applications.filter((a) => a.userId === userId);
+};
+
+
+export const createApplicationStatusNotification = async (
+  applicationId: string,
+  applicationTitle: string,
+  userId: string,
+  status: string,
+  updatedByUserId: string
+) => {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const { createNotificationForUser } = await import(
+    "@/services/notification-service"
+  );
+
+  await createNotificationForUser(
+    userId,
+    status === "completed" ? "Заявка принята" : "Заявка отклонена",
+    status === "completed"
+      ? `Ваша заявка "${applicationTitle}" была принята продавцом`
+      : `Ваша заявка "${applicationTitle}" была отклонена продавцом`,
+    {
+      type: status === "completed" ? "success" : "error",
+      actionUrl: "/profile/applications",
+      actionText: "Перейти к заявкам",
+      relatedUserId: updatedByUserId,
+      relatedEntityId: applicationId,
+      relatedEntityType: "application",
+    }
+  );
+
+  return { success: true };
 };

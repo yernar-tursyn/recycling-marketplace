@@ -188,7 +188,7 @@ export default function NewMaterialPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="price">Цена за кг (₽)</Label>
+                <Label htmlFor="price">Цена за кг (₸)</Label>
                 <Input
                   id="price"
                   type="number"

@@ -121,8 +121,6 @@ export const getMaterialById = async (id: string) => {
     throw new Error("Material not found");
   }
 
-  console.log(`Fetching material with ID: ${id}`, material);
-
   return material;
 };
 
@@ -201,6 +199,34 @@ export const updateMaterialStatus = async (id: string, status: string) => {
   }
 
   materials[index].status = status;
+
+  saveMaterials(materials);
+
+  return materials[index];
+};
+
+export const updateMaterialQuantity = async (
+  materialId: string,
+  quantityToSubtract: number
+) => {
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const materials = getMaterialsFromStorage();
+  const index = materials.findIndex((m) => m.id === materialId);
+
+  if (index === -1) {
+    throw new Error("Material not found");
+  }
+
+  const newQuantity = Math.max(
+    0,
+    materials[index].quantity - quantityToSubtract
+  );
+  materials[index].quantity = newQuantity;
+
+  if (newQuantity === 0) {
+    materials[index].status = "sold";
+  }
 
   saveMaterials(materials);
 

@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { getUserMaterials, deleteMaterial } from "@/services/material-service";
 import type { MaterialType } from "@/types/material";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -120,10 +120,14 @@ export default function MaterialsPage() {
           {materials.map((material) => (
             <Card key={material.id} className="overflow-hidden">
               <div
-                className="h-48 bg-muted bg-cover bg-center"
+                className="h-48 bg-muted bg-cover bg-center cursor-pointer"
                 style={{ backgroundImage: `url(${material.image})` }}
+                onClick={() => router.push(`/marketplace/${material.id}`)}
               />
-              <CardHeader className="p-4">
+              <CardHeader
+                className="p-4 cursor-pointer"
+                onClick={() => router.push(`/marketplace/${material.id}`)}
+              >
                 <div className="flex justify-between">
                   <CardTitle className="text-lg">{material.name}</CardTitle>
                   <Badge
@@ -144,24 +148,19 @@ export default function MaterialsPage() {
                 </div>
                 <CardDescription>{material.type}</CardDescription>
               </CardHeader>
-              <CardContent className="p-4 pt-0">
+              <CardContent
+                className="p-4 pt-0 cursor-pointer"
+                onClick={() => router.push(`/marketplace/${material.id}`)}
+              >
                 <p className="text-sm line-clamp-2 mb-2">
                   {material.description}
                 </p>
                 <div className="flex justify-between items-center">
-                  <span className="font-bold">{material.price} ₽/кг</span>
+                  <span className="font-bold">{material.price} ₸/кг</span>
                   <span>Количество: {material.quantity} кг</span>
                 </div>
               </CardContent>
               <CardFooter className="p-4 flex justify-between">
-                <Button
-                  variant="default"
-                  size="sm"
-                  onClick={() => router.push(`/marketplace/${material.id}`)}
-                >
-                  <Eye className="mr-2 h-4 w-4" />
-                  Просмотр
-                </Button>
                 <div className="space-x-2">
                   <Button
                     variant="outline"
