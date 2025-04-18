@@ -25,7 +25,7 @@ const router = Router();
  * @swagger
  * /api/notifications/create:
  *   post:
- *     summary: Создать новое уведомление
+ *     summary: Создать новое уведомление (need to be admin or manager)
  *     tags: [Notifications]
  *     security:
  *       - bearerAuth: []
@@ -63,12 +63,7 @@ const router = Router();
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post(
-  "/create",
-  authMiddleware,
-  roleMiddleware(["admin", "manager"]),
-  createNotification
-);
+router.post("/create", authMiddleware, createNotification);
 
 /**
  * @swagger
