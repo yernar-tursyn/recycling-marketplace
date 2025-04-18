@@ -4,15 +4,15 @@ import { QueryError } from "mysql2";
 
 export const createMaterial = async (req: Request, res: Response) => {
   try {
-    const { name, category, price } = req.body;
+    const { name, category_id, price } = req.body;
 
-    if (!name || !category || !price) {
+    if (!name || !category_id || !price) {
       return res.status(400).json({
         error: "Необходимо заполнить все обязательные поля",
       });
     }
 
-    const categoryNumber = Number(category);
+    const categoryNumber = Number(category_id);
     if (isNaN(categoryNumber)) {
       return res.status(400).json({ error: "Некорректное значение категории" });
     }
