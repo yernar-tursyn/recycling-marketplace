@@ -37,7 +37,7 @@ app.use("/api/users", authRoutes);
 app.use("/api/materials", materialRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/storage", storageRoutes);
+app.use("/api/storages", storageRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
