@@ -34,19 +34,16 @@ const router = Router();
  *             type: object
  *             required:
  *               - name
- *               - category
+ *               - category_id
  *               - price
- *               - location
  *             properties:
  *               name:
  *                 type: string
- *               category:
+ *               category_id:
  *                 type: number
  *                 description: Категория материала (1-7)
  *               price:
  *                 type: number
- *               location:
- *                 type: string
  *               description:
  *                 type: string
  *               image_url:
@@ -77,7 +74,7 @@ router.post("/", authMiddleware, createMaterial);
  *           type: string
  *         description: Поисковый запрос
  *       - in: query
- *         name: category
+ *         name: category_id
  *         schema:
  *           type: string
  *         description: Категория материала (1-7)
@@ -155,12 +152,10 @@ router.get("/:id", getMaterialById);
  *             properties:
  *               name:
  *                 type: string
- *               category:
+ *               category_id:
  *                 type: string
  *               price:
  *                 type: number
- *               location:
- *                 type: string
  *               description:
  *                 type: string
  *               image_url:
