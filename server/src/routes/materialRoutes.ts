@@ -41,7 +41,8 @@ const router = Router();
  *               name:
  *                 type: string
  *               category:
- *                 type: string
+ *                 type: number
+ *                 description: Категория материала (1-7)
  *               price:
  *                 type: number
  *               location:

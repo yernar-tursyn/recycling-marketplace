@@ -6,21 +6,19 @@ import { ResultSetHeader } from "mysql2";
 interface Material extends RowDataPacket {
   id: number;
   name: string;
-  category: number;
+  category_id: number;
   description?: string;
   price: number;
   unit: string;
-  location: string;
   image_url?: string;
 }
 
 interface MaterialInput {
   name: string;
-  category: number;
+  category_id: number;
   description?: string;
   price: number;
   unit?: string;
-  location: string;
   image_url?: string;
 }
 
@@ -33,11 +31,10 @@ class MaterialModel {
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           material.name,
-          material.category,
+          material.category_id,
           material.description || null,
           material.price,
           material.unit || "kg",
-          material.location,
           material.image_url || null,
         ]
       );

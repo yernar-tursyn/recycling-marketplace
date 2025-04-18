@@ -19,9 +19,8 @@ export const createMaterial = async (req: Request, res: Response) => {
 
     const materialData: MaterialInput = {
       name,
-      category,
+      category_id: categoryNumber,
       price: Number(price),
-      location,
       description: req.body.description || null,
       image_url: req.body.image_url || null,
       unit: req.body.unit || "kg",
