@@ -20,7 +20,7 @@ const router = Router();
 
 /**
  * @swagger
- * /api/orders:
+ * /api/orders/create:
  *   post:
  *     summary: Создать новый заказ
  *     tags: [Orders]
@@ -60,7 +60,7 @@ const router = Router();
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post("/", authMiddleware, createOrder);
+router.post("/create", authMiddleware, createOrder);
 
 /**
  * @swagger
@@ -117,7 +117,7 @@ router.get("/:id", authMiddleware, getOrderById);
 
 /**
  * @swagger
- * /api/orders/{id}:
+ * /api/orders/update/{id}:
  *   put:
  *     summary: Обновить заказ по ID
  *     tags: [Orders]
@@ -160,7 +160,7 @@ router.get("/:id", authMiddleware, getOrderById);
  *         description: Ошибка сервера
  */
 router.put(
-  "/:id",
+  "/update/:id",
   authMiddleware,
   roleMiddleware(["admin", "manager"]),
   updateOrder
