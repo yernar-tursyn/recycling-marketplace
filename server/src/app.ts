@@ -14,6 +14,7 @@ import orderRoutes from "./routes/orderRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import storageRoutes from "./routes/storageRoutes";
 import stockRoutes from "./routes/stockRoutes";
+import binRoutes from "./routes/binRoutes";
 
 const app = express();
 
@@ -33,11 +34,13 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Маршруты
-app.use("/api/users", authRoutes);
 app.use("/api/materials", materialRoutes);
+app.use("/api/storages", storageRoutes);
+app.use("/api/bins", binRoutes);
+
+app.use("/api/users", authRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/storages", storageRoutes);
 app.use("/api/stocks", stockRoutes);
 
 // Обработка ошибок

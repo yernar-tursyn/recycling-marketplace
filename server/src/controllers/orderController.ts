@@ -4,9 +4,9 @@ import { QueryError } from "mysql2";
 
 export const createOrder = async (req: Request, res: Response) => {
   try {
-    const { buyer_id, material_id, quantity, price } = req.body;
+    const { buyer_id, material_id, quantity, price, bin_id } = req.body;
 
-    if (!buyer_id || !material_id || !quantity || !price) {
+    if (!buyer_id || !material_id || !quantity || !price || !bin_id) {
       return res.status(400).json({
         error: "Необходимо заполнить все обязательные поля",
       });
@@ -17,6 +17,7 @@ export const createOrder = async (req: Request, res: Response) => {
       material_id: Number(material_id),
       quantity: Number(quantity),
       price: Number(price),
+      bin_id: Number(bin_id),
       delivery_address: req.body.delivery_address || null,
       contact_phone: req.body.contact_phone || null,
       notes: req.body.notes || null,
@@ -91,6 +92,7 @@ export const updateOrder = async (req: Request, res: Response) => {
 
     const allowedFields = [
       "status",
+      "bin_id",
       "delivery_address",
       "contact_phone",
       "notes",

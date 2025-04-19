@@ -4,7 +4,7 @@ import {
   getStocks,
   getStockById,
   getStocksByMaterial,
-  getStocksByStorage,
+  getStocksByBin, // Изменено с getStocksByStorage на getStocksByBin
   updateStock,
   deleteStock,
 } from "../controllers/stockController";
@@ -35,13 +35,13 @@ const router = Router();
  *             type: object
  *             required:
  *               - material_id
- *               - storage_id
+ *               - bin_id
  *               - quantity
  *               - seller_id
  *             properties:
  *               material_id:
  *                 type: integer
- *               storage_id:
+ *               bin_id:  // Изменено на bin_id
  *                 type: integer
  *               quantity:
  *                 type: number
@@ -115,23 +115,23 @@ router.get("/material/:material_id", getStocksByMaterial);
 
 /**
  * @swagger
- * /api/stocks/storage/{storage_id}:
+ * /api/stocks/bin/{bin_id}:
  *   get:
- *     summary: Get stocks by storage ID
+ *     summary: Get stocks by bin ID // Изменено на bin_id
  *     tags: [Stocks]
  *     parameters:
  *       - in: path
- *         name: storage_id
+ *         name: bin_id // Изменено на bin_id
  *         required: true
  *         schema:
  *           type: integer
  *     responses:
  *       200:
- *         description: List of stocks in storage
+ *         description: List of stocks in bin
  *       500:
  *         description: Server error
  */
-router.get("/storage/:storage_id", getStocksByStorage);
+router.get("/bin/:bin_id", getStocksByBin); // Изменено с getStocksByStorage на getStocksByBin
 
 /**
  * @swagger
@@ -156,7 +156,7 @@ router.get("/storage/:storage_id", getStocksByStorage);
  *             properties:
  *               material_id:
  *                 type: integer
- *               storage_id:
+ *               bin_id:  // Изменено на bin_id
  *                 type: integer
  *               quantity:
  *                 type: number

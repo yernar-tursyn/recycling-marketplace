@@ -173,11 +173,9 @@ export const getUnreadCount = async (req: Request, res: Response) => {
     res.json({ count });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        error: "Ошибка при получении количества непрочитанных уведомлений",
-      });
+    res.status(500).json({
+      error: "Ошибка при получении количества непрочитанных уведомлений",
+    });
   }
 };
 

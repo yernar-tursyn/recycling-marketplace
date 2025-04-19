@@ -37,6 +37,7 @@ const router = Router();
  *               - material_id
  *               - quantity
  *               - price
+ *               - bin_id
  *             properties:
  *               buyer_id:
  *                 type: integer
@@ -46,6 +47,8 @@ const router = Router();
  *                 type: number
  *               price:
  *                 type: number
+ *               bin_id:
+ *                 type: integer
  *               delivery_address:
  *                 type: string
  *               contact_phone:
@@ -141,6 +144,8 @@ router.get("/:id", authMiddleware, getOrderById);
  *               status:
  *                 type: string
  *                 enum: [pending, approved, rejected, completed, cancelled]
+ *               bin_id:
+ *                 type: integer
  *               delivery_address:
  *                 type: string
  *               contact_phone:
@@ -251,6 +256,8 @@ router.delete("/:id", authMiddleware, roleMiddleware(["admin"]), deleteOrder);
  *           type: string
  *         buyer_email:
  *           type: string
+ *         bin_id:
+ *           type: integer
  */
 
 export default router;

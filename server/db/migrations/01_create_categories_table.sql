@@ -10,4 +10,5 @@ INSERT INTO `categories` (`id`, `name`) VALUES
   (4, 'Металл'),
   (5, 'Кожа, резина, ветошь'),
   (6, 'Органика'),
-  (7, 'Отходы');
+  (7, 'Отходы') AS new
+ON DUPLICATE KEY UPDATE `name` = new.`name`;

@@ -3,18 +3,18 @@ import { StockModel, Stock, StockInput } from "../models/stockModel";
 
 export const createStock = async (req: Request, res: Response) => {
   try {
-    const { material_id, storage_id, quantity, seller_id } = req.body;
+    const { material_id, bin_id, quantity, seller_id } = req.body;
 
-    if (!material_id || !storage_id || !quantity || !seller_id) {
+    if (!material_id || !bin_id || !quantity || !seller_id) {
       return res.status(400).json({
         error:
-          "All fields are required (material_id, storage_id, quantity, seller_id)",
+          "All fields are required (material_id, bin_id, quantity, seller_id)",
       });
     }
 
     const stockData: StockInput = {
       material_id: Number(material_id),
-      storage_id: Number(storage_id),
+      bin_id: Number(bin_id), // Изменено на bin_id
       quantity: Number(quantity),
       seller_id: Number(seller_id),
     };
@@ -64,14 +64,12 @@ export const getStocksByMaterial = async (req: Request, res: Response) => {
   }
 };
 
-export const getStocksByStorage = async (req: Request, res: Response) => {
+export const getStocksByBin = async (req: Request, res: Response) => {
   try {
-    const stocks = await StockModel.findByStorage(
-      Number(req.params.storage_id)
-    );
+    const stocks = await StockModel.findByBin(Number(req.params.bin_id)); // Заменено на bin_id
     res.json(stocks);
   } catch (error) {
-    console.error("Error fetching stocks by storage:", error);
+    console.error("Error fetching stocks by bin:", error);
     res.status(500).json({ error: "Failed to fetch stocks" });
   }
 };

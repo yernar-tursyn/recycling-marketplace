@@ -10,6 +10,7 @@ interface Order extends RowDataPacket {
   price: number;
   total_amount: number;
   status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
+  bin_id: number;
   delivery_address?: string;
   contact_phone?: string;
   notes?: string;
@@ -22,6 +23,7 @@ interface OrderInput {
   material_id: number;
   quantity: number;
   price: number;
+  bin_id: number;
   delivery_address?: string;
   contact_phone?: string;
   notes?: string;
@@ -29,6 +31,7 @@ interface OrderInput {
 
 interface OrderUpdate {
   status?: "pending" | "approved" | "rejected" | "completed" | "cancelled";
+  bin_id?: number;
   delivery_address?: string;
   contact_phone?: string;
   notes?: string;
@@ -37,15 +40,18 @@ interface OrderUpdate {
 class OrderModel {
   static async create(order: OrderInput): Promise<number> {
     try {
+      const totalAmount = order.quantity * order.price;
       const [result] = await db.execute(
         `INSERT INTO orders 
-         (buyer_id, material_id, quantity, price, delivery_address, contact_phone, notes) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (buyer_id, material_id, quantity, price, total_amount, bin_id, delivery_address, contact_phone, notes) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           order.buyer_id,
           order.material_id,
           order.quantity,
           order.price,
+          totalAmount,
+          order.bin_id,
           order.delivery_address || null,
           order.contact_phone || null,
           order.notes || null,
