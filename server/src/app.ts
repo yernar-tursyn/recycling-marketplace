@@ -37,11 +37,11 @@ app.use(limiter);
 app.use("/api/materials", materialRoutes);
 app.use("/api/storages", storageRoutes);
 app.use("/api/bins", binRoutes);
-
 app.use("/api/users", authRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/notifications", notificationRoutes);
 app.use("/api/stocks", stockRoutes);
+app.use("/api/orders", orderRoutes);
+
+app.use("/api/notifications", notificationRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

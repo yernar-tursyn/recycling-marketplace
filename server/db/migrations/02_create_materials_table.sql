@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `materials` (
   `description` TEXT,
   `price` DECIMAL(10,2) NOT NULL,
   `unit` VARCHAR(20) NOT NULL DEFAULT 'kg',
-  `image_url` VARCHAR(255),  -- ❌ лишняя запятая здесь была
+  `image_url` VARCHAR(255),
 
   PRIMARY KEY (`id`),
   KEY `idx_materials_category` (`category_id`),
