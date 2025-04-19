@@ -126,17 +126,18 @@ class OrderModel {
     let sql = `
       SELECT 
         o.*, 
-        m.name as material_name, 
-        m.category as material_category,
-        m.image_url as material_image,
-        u.name as buyer_name,
-        u.email as buyer_email
+        m.name AS material_name,
+        m.image_url AS material_image,
+        c.name AS category_name,
+        u.name AS buyer_name,
+        u.email AS buyer_email
       FROM orders o
       JOIN materials m ON o.material_id = m.id
+      JOIN categories c ON m.category_id = c.id
       JOIN users u ON o.buyer_id = u.id
     `;
 
-    const params = [];
+    const params: (number | string)[] = [];
 
     if (buyer_id) {
       sql += " WHERE o.buyer_id = ?";
