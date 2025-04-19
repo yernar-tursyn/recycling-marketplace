@@ -41,7 +41,7 @@ const router = Router();
  *             properties:
  *               material_id:
  *                 type: integer
- *               bin_id:  // Изменено на bin_id
+ *               bin_id:
  *                 type: integer
  *               quantity:
  *                 type: number
@@ -117,11 +117,11 @@ router.get("/material/:material_id", getStocksByMaterial);
  * @swagger
  * /api/stocks/bin/{bin_id}:
  *   get:
- *     summary: Get stocks by bin ID // Изменено на bin_id
+ *     summary: Get stocks by bin ID
  *     tags: [Stocks]
  *     parameters:
  *       - in: path
- *         name: bin_id // Изменено на bin_id
+ *         name: bin_id
  *         required: true
  *         schema:
  *           type: integer
@@ -156,7 +156,7 @@ router.get("/bin/:bin_id", getStocksByBin); // Изменено с getStocksBySt
  *             properties:
  *               material_id:
  *                 type: integer
- *               bin_id:  // Изменено на bin_id
+ *               bin_id:
  *                 type: integer
  *               quantity:
  *                 type: number
