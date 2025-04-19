@@ -6,15 +6,15 @@ import authRoutes from "./routes/authRoutes";
 import { Request, Response, NextFunction } from "express";
 
 import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "./swaggerOptions "; // путь зависит от твоей структуры проекта
+import swaggerSpec from "./swaggerOptions ";
 
-// Импортируем маршруты для материалов
+// Импортируем маршруты
 import materialRoutes from "./routes/materialRoutes";
-// Импортируем маршруты для заказов
-import orderRoutes from "./routes/orderRoutes"; // Добавляем маршруты для заказов
-// Импортируем маршруты для уведомлений
-import notificationRoutes from "./routes/notificationRoutes"; // Добавляем маршруты для уведомлений
-import storageRoutes from "./routes/storageRoutes"; // Добавляем маршруты для хранения
+import orderRoutes from "./routes/orderRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
+import storageRoutes from "./routes/storageRoutes";
+import stockRoutes from "./routes/stockRoutes";
+
 const app = express();
 
 //swagger
@@ -38,6 +38,7 @@ app.use("/api/materials", materialRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/storages", storageRoutes);
+app.use("/api/stocks", stockRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {

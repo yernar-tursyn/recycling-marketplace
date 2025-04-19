@@ -1,27 +1,77 @@
+https://recycling-marketplace-backend.onrender.com/api-docs
 
-Хорошо, тогда откоректирую materials
-`materials` - Номенклатура
-  `id` 
-  `name` 
-  `category`  '1-Пластик, 2-Макулатура, 3-Стекло, 4-Металл, 5-Кожа/резина/ветошь, 6-Органика, 7-Отходы',
-  `description` 
-  `price` 
-  `unit` 
-  `location` 
-  `image_url` 
+Исправил Номенклатуру:
+  `materials` 
+      `id` 
+      `name` 
+      `category_id` 
+      `description` 
+      `price` 
+      `unit` 'kg',
+      `image_url` 
 
-Добавлю
-`bins` - Склад
-  `id` 
-  `name` 
-  `location`
+Добавил Склады:
+  `storages` 
+      `id` 
+      `name` VARCHAR(100) NOT NULL,
+      `location`
+  
+В процесе Остаток:
+  `stocks`
+      `id` 
+      `material_id`
+      `bin_id` 
+      `quantity` 
+      `seller_id` 
 
-`stocks` - Остаток
-  `id` 
-  `material_id`
-  `bin_id` 
-  `quantity` 
-  `seller_id` 
-  `status`
+Готово:
+  `users` 
+      `id`  
+      `email`  
+      `password`  
+      `name`  
+      `userType` enum('buyer','seller', 'manager','admin')  
+   
+   `orders` 
+      `id` 
+      `buyer_id` 
+      `material_id` 
+      `quantity` 
+      `price` 
+      `total_amount` 
+      `status` - 'pending','approved','rejected','completed','cancelled'
+      `bin_id`
+      `delivery_address` 
+      `contact_phone`
+      `notes`
+      `created_at` 
+      `updated_at` 
 
-Контрагент, Заказ и Уведомления уже есть 
+    `notifications` 
+      `id`
+      `user_id` 
+      `title`
+      `message` 
+      `type` ('order','material','system','message') 
+      `entity_id` 
+      `is_read` 
+      `created_at` 
+      `updated_at` 
+
+    `categories` 
+      `id` 
+      `name` 
+
+      (1, 'Пластик')
+      (2, 'Макулатура')
+      (3, 'Стекло')
+      (4, 'Металл')
+      (5, 'Кожа, резина, ветошь')
+      (6, 'Органика'),
+      (7, 'Отходы')
+      
+
+
+  
+  
+ 
