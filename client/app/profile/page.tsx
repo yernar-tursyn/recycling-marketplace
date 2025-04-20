@@ -25,6 +25,9 @@ import {
   Package,
   Plus,
   Pencil,
+  ShieldCheck,
+  User,
+  Clock,
 } from "lucide-react";
 
 export default function ProfilePage() {
@@ -34,7 +37,9 @@ export default function ProfilePage() {
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
 
+  // Исправим отображение счетчика заявок в профиле, чтобы учитывать все статусы заявок
   useEffect(() => {
+    // Check if we're in a browser environment before accessing localStorage
     if (typeof window !== "undefined") {
       if (!isLoading && !user) {
         router.push("/auth/login");
@@ -47,6 +52,7 @@ export default function ProfilePage() {
             const appsData = await getUserApplications(user.id, user.type);
             setApplications(appsData);
 
+            // Загружаем материалы пользователя, если он продавец
             if (user.type === "seller") {
               const materialsData = await getUserMaterials(user.id);
               setMaterials(materialsData);
@@ -102,42 +108,56 @@ export default function ProfilePage() {
                   Редактировать профиль
                 </Button>
 
-                {user.type === "buyer" ? (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="justify-start"
-                      onClick={() => router.push("/profile/applications")}
-                    >
-                      Мои заявки на покупку
-                    </Button>
-                  </>
+                {user.role === "user" ? (
+                  user.type === "buyer" ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="justify-start"
+                        onClick={() => router.push("/profile/applications")}
+                      >
+                        Мои заявки на покупку
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        className="justify-start"
+                        onClick={() => router.push("/profile/materials")}
+                      >
+                        Мои материалы
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="justify-start"
+                        onClick={() => router.push("/profile/applications")}
+                      >
+                        Заявки на мои материалы
+                      </Button>
+                    </>
+                  )
                 ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="justify-start"
-                      onClick={() => router.push("/profile/materials")}
-                    >
-                      Мои материалы
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="justify-start"
-                      onClick={() => router.push("/profile/applications")}
-                    >
-                      Заявки на мои материалы
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => router.push("/admin")}
+                  >
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    Административная панель
+                  </Button>
                 )}
 
-                <Button
-                  variant="outline"
-                  className="justify-start"
-                  onClick={() => router.push("/profile/favorites")}
-                >
-                  Избранное
-                </Button>
+                {user.role === "user" && (
+                  <Button
+                    variant="outline"
+                    className="justify-start"
+                    onClick={() => router.push("/profile/favorites")}
+                  >
+                    Избранное
+                  </Button>
+                )}
+
                 <Button
                   variant="outline"
                   className="justify-start"
@@ -154,15 +174,22 @@ export default function ProfilePage() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="overview">Обзор</TabsTrigger>
-              {user.type === "buyer" ? (
-                <TabsTrigger value="applications">Мои заявки</TabsTrigger>
-              ) : (
+              {user.role === "user" ? (
                 <>
-                  <TabsTrigger value="materials">Мои материалы</TabsTrigger>
-                  <TabsTrigger value="applications">Заявки</TabsTrigger>
+                  {user.type === "buyer" ? (
+                    <TabsTrigger value="applications">Мои заявки</TabsTrigger>
+                  ) : (
+                    <>
+                      <TabsTrigger value="materials">Мои материалы</TabsTrigger>
+                      <TabsTrigger value="applications">Заявки</TabsTrigger>
+                    </>
+                  )}
                 </>
+              ) : (
+                <TabsTrigger value="platform-stats">
+                  Статистика платформы
+                </TabsTrigger>
               )}
-              <TabsTrigger value="stats">Статистика</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -170,16 +197,103 @@ export default function ProfilePage() {
                 <CardHeader>
                   <CardTitle>Добро пожаловать, {user.name}!</CardTitle>
                   <CardDescription>
-                    Это ваш личный кабинет, где вы можете{" "}
-                    {user.type === "buyer"
-                      ? "искать и покупать материалы"
-                      : "размещать материалы на продажу и управлять заявками"}
-                    .
+                    {user.role === "admin"
+                      ? "Это ваш личный кабинет администратора, где вы можете отслеживать активность на платформе."
+                      : user.role === "manager"
+                      ? "Это ваш личный кабинет менеджера, где вы можете отслеживать активность на платформе."
+                      : "Это ваш личный кабинет, где вы можете искать и покупать материалы."}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {user.type === "buyer" ? (
+                    {user.role === "admin" || user.role === "manager" ? (
+                      // Показываем метрики для администраторов и менеджеров
+                      <>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Новые пользователи
+                            </CardTitle>
+                            <User className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {/* Здесь должен быть запрос к API для получения реальных данных */}
+                              <span title="В реальном приложении здесь будет динамическое значение">
+                                -
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              За последние 7 дней
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Ожидающие модерации
+                            </CardTitle>
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {/* Здесь будет реальное количество материалов на модерации */}
+                              {
+                                materials.filter(
+                                  (mat) => mat.status === "pending"
+                                ).length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Материалы, требующие проверки
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Активные заявки
+                            </CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {/* Здесь будет реальное количество активных заявок */}
+                              {
+                                applications.filter(
+                                  (app) => app.status === "active"
+                                ).length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Требуют внимания
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                              Завершенные сделки
+                            </CardTitle>
+                            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {/* Здесь будет реальное количество завершенных сделок */}
+                              {
+                                applications.filter(
+                                  (app) => app.status === "completed"
+                                ).length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              За последние 30 дней
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </>
+                    ) : user.type === "buyer" ? (
+                      // Показываем метрики для покупателей
                       <>
                         <Card>
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -217,6 +331,7 @@ export default function ProfilePage() {
                         </Card>
                       </>
                     ) : (
+                      // Показываем метрики для продавцов
                       <>
                         <Card>
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -272,13 +387,21 @@ export default function ProfilePage() {
                     <Card>
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                          Местоположение
+                          {user.role === "admin" || user.role === "manager"
+                            ? "Последний вход"
+                            : "Местоположение"}
                         </CardTitle>
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        {user.role === "admin" || user.role === "manager" ? (
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <MapPin className="h-4 w-4 text-muted-foreground" />
+                        )}
                       </CardHeader>
                       <CardContent>
                         <div className="text-sm">
-                          {user.location || "Не указано"}
+                          {user.role === "admin" || user.role === "manager"
+                            ? new Date().toLocaleString() // В реальном приложении здесь будет время последнего входа
+                            : user.location || "Не указано"}
                         </div>
                       </CardContent>
                     </Card>
@@ -508,19 +631,188 @@ export default function ProfilePage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="stats">
+            <TabsContent value="platform-stats">
               <Card>
                 <CardHeader>
-                  <CardTitle>Статистика</CardTitle>
+                  <CardTitle>Статистика платформы</CardTitle>
                   <CardDescription>
-                    Ваша активность на платформе
+                    Общая статистика активности на платформе
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-10">
-                    <p className="text-muted-foreground">
-                      Статистика будет доступна после совершения сделок
-                    </p>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">
+                        Активность пользователей
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">
+                              Покупатели
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              <span title="В реальном приложении здесь будет динамическое значение">
+                                -
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Активных покупателей
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Продавцы</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              <span title="В реальном приложении здесь будет динамическое значение">
+                                -
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Активных продавцов
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">
+                              Новые регистрации
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              <span title="В реальном приложении здесь будет динамическое значение">
+                                -
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              За последние 7 дней
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">
+                        Материалы и заявки
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">
+                              Активные материалы
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                materials.filter((m) => m.status === "active")
+                                  .length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Доступны для покупки
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">
+                              Ожидают модерации
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                materials.filter((m) => m.status === "pending")
+                                  .length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Требуют проверки
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">
+                              Активные заявки
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                applications.filter(
+                                  (a) => a.status === "active"
+                                ).length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              В процессе
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Сделки</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">
+                              Завершенные сделки
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                applications.filter(
+                                  (a) => a.status === "completed"
+                                ).length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Успешно завершены
+                            </p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">
+                              Отмененные заявки
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-2xl font-bold">
+                              {
+                                applications.filter(
+                                  (a) => a.status === "cancelled"
+                                ).length
+                              }
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Были отменены
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push("/admin/reports")}
+                      >
+                        Подробная статистика
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -28,6 +28,7 @@ interface AuthContextType {
   setAdminSession: (token: string) => void;
 }
 
+// Создаем контекст с начальным значением undefined
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Only run on client-side
     if (typeof window === "undefined") {
       setIsLoading(false);
       return;
@@ -106,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("admin_token");
+    // Вызываем функцию logout из auth-service для очистки дополнительных данных
     import("@/services/auth-service").then(({ logout }) => logout());
     setUser(null);
   };

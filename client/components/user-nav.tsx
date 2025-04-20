@@ -92,27 +92,33 @@ export function UserNav() {
               </Link>
             </DropdownMenuItem>
 
-            {user.type === "buyer" ? (
-              <DropdownMenuItem asChild>
-                <Link href="/profile/applications">
-                  <span>Мои заявки</span>
-                </Link>
-              </DropdownMenuItem>
-            ) : (
+            {/* Показываем ссылки на материалы и заявки только для обычных пользователей */}
+            {user.role === "user" ? (
               <>
-                <DropdownMenuItem asChild>
-                  <Link href="/profile/materials">
-                    <span>Мои материалы</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/profile/applications">
-                    <span>Заявки на материалы</span>
-                  </Link>
-                </DropdownMenuItem>
+                {user.type === "buyer" ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile/applications">
+                      <span>Мои заявки</span>
+                    </Link>
+                  </DropdownMenuItem>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile/materials">
+                        <span>Мои материалы</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile/applications">
+                        <span>Заявки на материалы</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </>
-            )}
+            ) : null}
 
+            {/* Избранное доступно для всех пользователей */}
             <DropdownMenuItem asChild>
               <Link href="/profile/favorites">
                 <span>Избранное</span>
@@ -142,7 +148,7 @@ export function UserNav() {
               <DropdownMenuItem asChild>
                 <Link href="/admin">
                   <ShieldCheck className="mr-2 h-4 w-4" />
-                  <span>Администрирование</span>
+                  <span>Административная панель</span>
                 </Link>
               </DropdownMenuItem>
             )}

@@ -67,7 +67,10 @@ export function UserNav() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage
+                src={user.avatar || "/placeholder.svg"}
+                alt={user.name}
+              />
               <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
           </Button>
@@ -98,30 +101,47 @@ export function UserNav() {
               </Link>
             </DropdownMenuItem>
 
-            {user.type === "buyer" ? (
-              <DropdownMenuItem asChild>
-                <Link href="/profile/applications">
-                  <span>Мои заявки</span>
-                </Link>
-              </DropdownMenuItem>
-            ) : (
+            {/* Показываем ссылки на материалы и заявки только для обычных пользователей (не админов и не менеджеров) */}
+            {user.role === "user" ? (
               <>
+                {user.type === "buyer" ? (
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile/applications">
+                      <span>Мои заявки</span>
+                    </Link>
+                  </DropdownMenuItem>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile/materials">
+                        <span>Мои материалы</span>
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile/applications">
+                        <span>Заявки на материалы</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+
                 <DropdownMenuItem asChild>
-                  <Link href="/profile/materials">
-                    <span>Мои материалы</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/profile/applications">
-                    <span>Заявки на материалы</span>
+                  <Link href="/profile/favorites">
+                    <span>Избранное</span>
                   </Link>
                 </DropdownMenuItem>
               </>
-            )}
+            ) : null}
 
             <DropdownMenuItem asChild>
-              <Link href="/profile/favorites">
-                <span>Избранное</span>
+              <Link href="/notifications">
+                <Bell className="mr-2 h-4 w-4" />
+                <span>Уведомления</span>
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="ml-auto">
+                    {unreadCount}
+                  </Badge>
+                )}
               </Link>
             </DropdownMenuItem>
 
@@ -136,7 +156,7 @@ export function UserNav() {
               <DropdownMenuItem asChild>
                 <Link href="/admin">
                   <ShieldCheck className="mr-2 h-4 w-4" />
-                  <span>Администрирование</span>
+                  <span>Административная панель</span>
                 </Link>
               </DropdownMenuItem>
             )}
