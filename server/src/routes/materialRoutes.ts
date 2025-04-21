@@ -8,6 +8,7 @@ import {
   searchMaterials,
 } from "../controllers/materialController";
 import authMiddleware from "../middlewares/authMiddleware";
+import roleMiddleware from "../middlewares/roleMiddleware";
 
 const router = Router();
 
@@ -172,7 +173,7 @@ router.get("/:id", getMaterialById);
  *       500:
  *         description: Ошибка сервера
  */
-router.put("/:id", authMiddleware, updateMaterial);
+router.put("/:id", authMiddleware, roleMiddleware, updateMaterial);
 
 /**
  * @swagger

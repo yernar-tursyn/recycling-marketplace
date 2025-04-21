@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `materials` (
   `price` DECIMAL(10,2) NOT NULL,
   `unit` VARCHAR(20) NOT NULL DEFAULT 'kg',
   `image_url` VARCHAR(255),
+  `status` ENUM('Under review', 'Rejected', 'Approved') NOT NULL DEFAULT 'Under review'
 
   PRIMARY KEY (`id`),
   KEY `idx_materials_category` (`category_id`),
