@@ -20,7 +20,7 @@ const router = Router();
 
 /**
  * @swagger
- * /auth/register:
+ * /api/register:
  *   post:
  *     summary: Регистрация пользователя
  *     tags: [Auth]
@@ -57,7 +57,7 @@ router.post("/register", register);
 
 /**
  * @swagger
- * /auth/login:
+ * /api/login:
  *   post:
  *     summary: Вход пользователя
  *     tags: [Auth]
@@ -94,7 +94,7 @@ router.post("/login", login);
 
 /**
  * @swagger
- * /auth/profile:
+ * /api/profile:
  *   get:
  *     summary: Получить профиль пользователя
  *     tags: [Auth]
@@ -127,7 +127,7 @@ router.get("/profile", authMiddleware, getProfile);
 
 /**
  * @swagger
- * /auth/profile:
+ * /api/profile:
  *   delete:
  *     summary: Удалить свой профиль
  *     tags: [Auth]
@@ -145,7 +145,7 @@ router.delete("/profile", authMiddleware, deleteUser);
 
 /**
  * @swagger
- * /auth/users/{id}:
+ * /api/users/{id}:
  *   delete:
  *     summary: Удалить пользователя по ID
  *     tags: [Auth]
@@ -172,6 +172,6 @@ router.delete("/profile", authMiddleware, deleteUser);
  *       500:
  *         description: Ошибка сервера при удалении пользователя
  */
-router.delete("/users/:id", authMiddleware, roleMiddleware, deleteUserById);
+router.delete("/:id", authMiddleware, roleMiddleware, deleteUserById);
 
 export default router;
