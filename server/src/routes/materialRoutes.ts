@@ -173,7 +173,12 @@ router.get("/:id", getMaterialById);
  *       500:
  *         description: Ошибка сервера
  */
-router.put("/:id", authMiddleware, roleMiddleware, updateMaterial);
+router.put(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(["admin", "manager"]),
+  updateMaterial
+);
 
 /**
  * @swagger
