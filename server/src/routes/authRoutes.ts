@@ -4,7 +4,6 @@ import {
   login,
   getProfile,
   deleteUser,
-  deleteUserById,
 } from "../controllers/authController";
 import authMiddleware from "../middlewares/authMiddleware";
 import roleMiddleware from "../middlewares/roleMiddleware";
@@ -145,33 +144,37 @@ router.delete("/profile", authMiddleware, deleteUser);
 
 /**
  * @swagger
- * /api/users/{id}:
+ * /api/users/user/{id}:
  *   delete:
- *     summary: Удалить пользователя по ID
- *     tags: [Auth]
+ *     summary: Удалить пользователя по ID (только для админов)
+ *     tags: [Users]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
+ *         description: Уникальный идентификатор пользователя
  *         schema:
- *           type: integer
- *         description: ID пользователя
+ *           type: string
  *     responses:
- *       204:
+ *       200:
  *         description: Пользователь успешно удалён
- *       400:
- *         description: Некорректный ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Пользователь удалён
  *       401:
- *         description: Не авторизован
+ *         description: Неавторизован
  *       403:
- *         description: Нельзя удалить самого себя
+ *         description: Недостаточно прав для удаления пользователя
  *       404:
  *         description: Пользователь не найден
- *       500:
- *         description: Ошибка сервера при удалении пользователя
  */
-router.delete("/:id", authMiddleware, roleMiddleware, deleteUserById);
+router.delete("/user/:id", authMiddleware, roleMiddleware, deleteUser);
 
 export default router;

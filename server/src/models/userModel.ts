@@ -57,8 +57,10 @@ class UserModel {
     await db.execute("UPDATE users SET name = ? WHERE id = ?", [newName, id]);
   }
 
-  static async delete(id: number): Promise<void> {
-    await db.execute("DELETE FROM users WHERE id = ?", [id]);
+  static async delete(id: number): Promise<boolean> {
+    const [result] = await db.execute("DELETE FROM users WHERE id = ?", [id]);
+    const affectedRows = (result as mysql.ResultSetHeader).affectedRows;
+    return affectedRows > 0;
   }
 }
 
