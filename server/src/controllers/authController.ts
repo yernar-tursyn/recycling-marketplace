@@ -109,3 +109,57 @@ export const getProfile = async (
     });
   }
 };
+
+export const deleteUser = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<Response> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Не авторизован" });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Пользователь не найден" });
+    }
+
+    await UserModel.delete(userId);
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Ошибка при удалении пользователя:", error);
+    return res
+      .status(500)
+      .json({ error: "Ошибка сервера при удалении пользователя" });
+  }
+};
+
+export const deleteUserById = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<Response> => {
+  try {
+    const userId = parseInt(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "Некорректный ID пользователя" });
+    }
+
+    if (userId === req.user?.id) {
+      return res.status(403).json({ error: "Нельзя удалить самого себя" });
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "Пользователь не найден" });
+    }
+
+    await UserModel.delete(userId);
+    return res.status(204).send();
+  } catch (error) {
+    console.error("Ошибка при удалении пользователя:", error);
+    return res
+      .status(500)
+      .json({ error: "Ошибка сервера при удалении пользователя" });
+  }
+};

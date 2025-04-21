@@ -1,77 +1,74 @@
-https://recycling-marketplace-backend.onrender.com/api-docs
+-- Таблица: categories
+-- Категории материалов
+id
+name
 
-Исправил Номенклатуру:
-  `materials` 
-      `id` 
-      `name` 
-      `category_id` 
-      `description` 
-      `price` 
-      `unit` 'kg',
-      `image_url` 
+-- Таблица: materials
+-- Материалы, привязаны к категории
+id
+name
+category_id       -- → categories.id
+description
+price
+unit
+image_url
 
-Добавил Склады:
-  `storages` 
-      `id` 
-      `name` VARCHAR(100) NOT NULL,
-      `location`
-  
-В процесе Остаток:
-  `stocks`
-      `id` 
-      `material_id`
-      `bin_id` 
-      `quantity` 
-      `seller_id` 
+-- Таблица: storages
+-- Склады
+id
+name
+location
 
-Готово:
-  `users` 
-      `id`  
-      `email`  
-      `password`  
-      `name`  
-      `userType` enum('buyer','seller', 'manager','admin')  
-   
-   `orders` 
-      `id` 
-      `buyer_id` 
-      `material_id` 
-      `quantity` 
-      `price` 
-      `total_amount` 
-      `status` - 'pending','approved','rejected','completed','cancelled'
-      `bin_id`
-      `delivery_address` 
-      `contact_phone`
-      `notes`
-      `created_at` 
-      `updated_at` 
+-- Таблица: bins
+-- Ячейки/контейнеры на складах
+id
+storage_id        -- → storages.id
+name
 
-    `notifications` 
-      `id`
-      `user_id` 
-      `title`
-      `message` 
-      `type` ('order','material','system','message') 
-      `entity_id` 
-      `is_read` 
-      `created_at` 
-      `updated_at` 
+-- Таблица: users
+-- Пользователи 
+id
+email
+password
+name
+userType
+created_at
+updated_at
 
-    `categories` 
-      `id` 
-      `name` 
+-- Таблица: stocks
+-- Остатки материалов в ячейках, принадлежат продавцам
+id
+material_id       -- → materials.id
+bin_id            -- → bins.id
+quantity
+seller_id         -- → users.id
+created_at
+updated_at
 
-      (1, 'Пластик')
-      (2, 'Макулатура')
-      (3, 'Стекло')
-      (4, 'Металл')
-      (5, 'Кожа, резина, ветошь')
-      (6, 'Органика'),
-      (7, 'Отходы')
-      
+-- Таблица: orders
+-- Заказы от покупателей
+id
+buyer_id          -- → users.id (nullable)
+material_id       -- → materials.id (nullable)
+quantity
+price
+total_amount
+status
+bin_id            -- → bins.id (nullable)
+delivery_address
+contact_phone
+notes
+created_at
+updated_at
 
-
-  
-  
- 
+-- Таблица: notifications
+-- Уведомления для пользователей
+id 
+user_id 
+title 
+message 
+type
+entity_id 
+is_read 
+created_at
+updated_at
