@@ -147,7 +147,7 @@ router.delete("/profile", authMiddleware, deleteUser);
  * /api/users/user/{id}:
  *   delete:
  *     summary: Удалить пользователя по ID (только для админов)
- *     tags: [Users]
+ *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
  *     parameters:
