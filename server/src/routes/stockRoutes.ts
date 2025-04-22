@@ -200,7 +200,7 @@ router.get("/bin/:bin_id", getStocksByBin); // Изменено с getStocksBySt
  * @swagger
  * /api/stocks/{id}:
  *   put:
- *     summary: Update stock need to be an admin or manager
+ *     summary: Update stock
  *     tags: [Stocks]
  *     security:
  *       - bearerAuth: []
