@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS `stocks` (
   `bin_id` INT NOT NULL,
   `quantity` DECIMAL(10,2) NOT NULL,
   `seller_id` INT NOT NULL,
+  `status` ENUM('active', 'inactive', 'sold', 'reserved') NOT NULL DEFAULT 'active',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

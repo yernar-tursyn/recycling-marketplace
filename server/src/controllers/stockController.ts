@@ -41,14 +41,22 @@ export const getStocks = async (req: Request, res: Response) => {
 
 export const getStockById = async (req: Request, res: Response) => {
   try {
-    const stock = await StockModel.findById(Number(req.params.id));
-    if (!stock) {
-      return res.status(404).json({ error: "Stock not found" });
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid stock ID" });
     }
+
+    const stock = await StockModel.findById(id);
+
+    if (!stock) {
+      return res.status(404).json({ message: "Stock not found" });
+    }
+
     res.json(stock);
   } catch (error) {
     console.error("Error fetching stock:", error);
-    res.status(500).json({ error: "Failed to fetch stock" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -103,5 +111,41 @@ export const deleteStock = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error deleting stock:", error);
     res.status(500).json({ error: "Failed to delete stock" });
+  }
+};
+
+export const findAvailableStocks = async (req: Request, res: Response) => {
+  try {
+    const availableStocks = await StockModel.findAvailable();
+    res.json(availableStocks);
+  } catch (error) {
+    console.error("Error fetching available stocks:", error);
+    res.status(500).json({ error: "Failed to fetch available stocks" });
+  }
+};
+
+export const getAvailableStocksByMaterial = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const materialId = Number(req.params.materialId);
+
+    if (isNaN(materialId)) {
+      return res.status(400).json({ error: "Invalid material ID" });
+    }
+
+    const stocks = await StockModel.findAvailableByMaterial(materialId);
+
+    if (stocks.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No available stock for this material" });
+    }
+
+    res.json(stocks);
+  } catch (error) {
+    console.error("Error getting stocks by material:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

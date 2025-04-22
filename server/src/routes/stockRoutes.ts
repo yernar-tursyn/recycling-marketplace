@@ -7,8 +7,11 @@ import {
   getStocksByBin, // Изменено с getStocksByStorage на getStocksByBin
   updateStock,
   deleteStock,
+  findAvailableStocks,
+  getAvailableStocksByMaterial,
 } from "../controllers/stockController";
 import authMiddleware from "../middlewares/authMiddleware";
+import roleMiddleware from "../middlewares/roleMiddleware";
 
 const router = Router();
 
@@ -70,6 +73,66 @@ router.post("/", authMiddleware, createStock);
  *         description: Server error
  */
 router.get("/", getStocks);
+
+/**
+ * @swagger
+ * /api/stocks/available:
+ *   get:
+ *     summary: Get all stocks with quantity > 0 and status = "active"
+ *     tags: [Stocks]
+ *     responses:
+ *       200:
+ *         description: List of available stocks
+ *       500:
+ *         description: Server error
+ */
+router.get("/available", findAvailableStocks);
+
+/**
+ * @swagger
+ * /stocks/material/{materialId}:
+ *   get:
+ *     summary: Получить все доступные запасы по определённому материалу
+ *     tags: [Stocks]
+ *     parameters:
+ *       - in: path
+ *         name: materialId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID материала
+ *     responses:
+ *       200:
+ *         description: Успешный ответ с доступными запасами
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                   material_id:
+ *                     type: integer
+ *                   material_name:
+ *                     type: string
+ *                   price:
+ *                     type: number
+ *                   storage_name:
+ *                     type: string
+ *                   weight:
+ *                     type: number
+ *                   is_active:
+ *                     type: boolean
+ *       400:
+ *         description: Неверный ID материала
+ *       404:
+ *         description: Нет доступных запасов для указанного материала
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.get("/stocks/material/:materialId", getAvailableStocksByMaterial);
 
 /**
  * @swagger
@@ -137,7 +200,7 @@ router.get("/bin/:bin_id", getStocksByBin); // Изменено с getStocksBySt
  * @swagger
  * /api/stocks/{id}:
  *   put:
- *     summary: Update stock
+ *     summary: Update stock need to be an admin or manager
  *     tags: [Stocks]
  *     security:
  *       - bearerAuth: []

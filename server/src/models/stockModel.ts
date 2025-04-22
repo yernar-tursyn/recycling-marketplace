@@ -6,13 +6,17 @@ import { ResultSetHeader } from "mysql2";
 interface Stock extends RowDataPacket {
   id: number;
   material_id: number;
-  bin_id: number; // Заменено на bin_id
   quantity: number;
+  bin_id: number;
   seller_id: number;
-  created_at: string;
-  updated_at: string;
+  status: string;
+  // Расширенные поля:
+  material_name?: string;
+  material_price?: number;
+  storage_name?: string;
+  storage_location?: string;
+  seller_name?: string;
 }
-
 // Интерфейс для ввода данных (при создании)
 interface StockInput {
   material_id: number;
@@ -103,6 +107,46 @@ class StockModel {
       [id]
     );
     return result.affectedRows > 0;
+  }
+
+  // Получение всех активных записей с количеством > 0
+  static async findAvailable(): Promise<Stock[]> {
+    const [rows] = await db.query<Stock[]>(
+      `SELECT 
+       s.*,
+       m.name AS material_name,
+       m.price AS material_price,
+       st.name AS storage_name,
+       st.location AS storage_location,
+       u.name AS seller_name
+     FROM stocks s
+     JOIN materials m ON s.material_id = m.id
+     JOIN bins b ON s.bin_id = b.id
+     JOIN storages st ON b.storage_id = st.id
+     JOIN users u ON s.seller_id = u.id
+     WHERE s.quantity > 0 AND s.status = 'active'`
+    );
+    return rows;
+  }
+
+  static async findAvailableByMaterial(materialId: number): Promise<Stock[]> {
+    const [rows] = await db.query<Stock[]>(
+      `SELECT 
+       s.*,
+       m.name AS material_name,
+       m.price AS material_price,
+       st.name AS storage_name,
+       st.location AS storage_location,
+       u.name AS seller_name
+     FROM stocks s
+     JOIN materials m ON s.material_id = m.id
+     JOIN bins b ON s.bin_id = b.id
+     JOIN storages st ON b.storage_id = st.id
+     JOIN users u ON s.seller_id = u.id
+     WHERE s.quantity > 0 AND s.status = 'active' AND s.material_id = ?`,
+      [materialId]
+    );
+    return rows;
   }
 }
 
