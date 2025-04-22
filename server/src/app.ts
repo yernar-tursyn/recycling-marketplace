@@ -15,6 +15,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 import storageRoutes from "./routes/storageRoutes";
 import stockRoutes from "./routes/stockRoutes";
 import binRoutes from "./routes/binRoutes";
+import favoriteMaterialRoutes from "./routes/favoriteMaterialRoutes";
 
 const app = express();
 
@@ -40,8 +41,8 @@ app.use("/api/bins", binRoutes);
 app.use("/api/users", authRoutes);
 app.use("/api/stocks", stockRoutes);
 app.use("/api/orders", orderRoutes);
-
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/favorites", favoriteMaterialRoutes);
 
 // Обработка ошибок
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
