@@ -17,10 +17,11 @@ interface Stock extends RowDataPacket {
   storage_location?: string;
   seller_name?: string;
 }
+
 // Интерфейс для ввода данных (при создании)
 interface StockInput {
   material_id: number;
-  bin_id: number; // Заменено на bin_id
+  bin_id: number;
   quantity: number;
   seller_id: number;
 }
@@ -31,52 +32,89 @@ class StockModel {
     const [result] = await db.execute<ResultSetHeader>(
       `INSERT INTO stocks 
        (material_id, bin_id, quantity, seller_id) 
-       VALUES (?, ?, ?, ?)`, // Используем bin_id
+       VALUES (?, ?, ?, ?)`,
       [stock.material_id, stock.bin_id, stock.quantity, stock.seller_id]
     );
     return result.insertId;
   }
 
-  // Получение всех записей
+  // Получение всех записей с дополнительной информацией
   static async findAll(): Promise<Stock[]> {
-    const [rows] = await db.query<Stock[]>("SELECT * FROM stocks");
+    const [rows] = await db.query<Stock[]>(
+      `SELECT 
+        s.*,
+        m.name AS material_name,
+        m.price AS material_price,
+        st.name AS storage_name,
+        st.location AS storage_location,
+        u.name AS seller_name
+      FROM stocks s
+      JOIN materials m ON s.material_id = m.id
+      JOIN bins b ON s.bin_id = b.id
+      JOIN storages st ON b.storage_id = st.id
+      JOIN users u ON s.seller_id = u.id`
+    );
     return rows;
   }
 
-  // Получение записи по ID
+  // Получение записи по ID с дополнительной информацией
   static async findById(id: number): Promise<Stock | null> {
     const [rows] = await db.query<Stock[]>(
-      "SELECT * FROM stocks WHERE id = ?",
+      `SELECT 
+        s.*,
+        m.name AS material_name,
+        m.price AS material_price,
+        st.name AS storage_name,
+        st.location AS storage_location,
+        u.name AS seller_name
+      FROM stocks s
+      JOIN materials m ON s.material_id = m.id
+      JOIN bins b ON s.bin_id = b.id
+      JOIN storages st ON b.storage_id = st.id
+      JOIN users u ON s.seller_id = u.id
+      WHERE s.id = ?`,
       [id]
     );
     return rows[0] || null;
   }
 
-  // Получение записей по материалу (material_id)
+  // Получение записей по материалу (material_id) с дополнительной информацией
   static async findByMaterial(material_id: number): Promise<Stock[]> {
     const [rows] = await db.query<Stock[]>(
       `SELECT 
-      s.*,
-      m.name AS material_name,
-      m.price AS material_price,
-      st.name AS storage_name,
-      st.location AS storage_location,
-      u.name AS seller_name
-    FROM stocks s
-    JOIN materials m ON s.material_id = m.id
-    JOIN bins b ON s.bin_id = b.id
-    JOIN storages st ON b.storage_id = st.id
-    JOIN users u ON s.seller_id = u.id
-    WHERE s.material_id = ?`,
+        s.*,
+        m.name AS material_name,
+        m.price AS material_price,
+        st.name AS storage_name,
+        st.location AS storage_location,
+        u.name AS seller_name
+      FROM stocks s
+      JOIN materials m ON s.material_id = m.id
+      JOIN bins b ON s.bin_id = b.id
+      JOIN storages st ON b.storage_id = st.id
+      JOIN users u ON s.seller_id = u.id
+      WHERE s.material_id = ?`,
       [material_id]
     );
     return rows;
   }
 
-  // Получение записей по ячейке (bin_id)
+  // Получение записей по ячейке (bin_id) с дополнительной информацией
   static async findByBin(bin_id: number): Promise<Stock[]> {
     const [rows] = await db.query<Stock[]>(
-      "SELECT * FROM stocks WHERE bin_id = ?",
+      `SELECT 
+        s.*,
+        m.name AS material_name,
+        m.price AS material_price,
+        st.name AS storage_name,
+        st.location AS storage_location,
+        u.name AS seller_name
+      FROM stocks s
+      JOIN materials m ON s.material_id = m.id
+      JOIN bins b ON s.bin_id = b.id
+      JOIN storages st ON b.storage_id = st.id
+      JOIN users u ON s.seller_id = u.id
+      WHERE s.bin_id = ?`,
       [bin_id]
     );
     return rows;
@@ -125,37 +163,38 @@ class StockModel {
   static async findAvailable(): Promise<Stock[]> {
     const [rows] = await db.query<Stock[]>(
       `SELECT 
-       s.*,
-       m.name AS material_name,
-       m.price AS material_price,
-       st.name AS storage_name,
-       st.location AS storage_location,
-       u.name AS seller_name
-     FROM stocks s
-     JOIN materials m ON s.material_id = m.id
-     JOIN bins b ON s.bin_id = b.id
-     JOIN storages st ON b.storage_id = st.id
-     JOIN users u ON s.seller_id = u.id
-     WHERE s.quantity > 0 AND s.status = 'active'`
+        s.*,
+        m.name AS material_name,
+        m.price AS material_price,
+        st.name AS storage_name,
+        st.location AS storage_location,
+        u.name AS seller_name
+      FROM stocks s
+      JOIN materials m ON s.material_id = m.id
+      JOIN bins b ON s.bin_id = b.id
+      JOIN storages st ON b.storage_id = st.id
+      JOIN users u ON s.seller_id = u.id
+      WHERE s.quantity > 0 AND s.status = 'active'`
     );
     return rows;
   }
 
+  // Получение доступных записей по материалу
   static async findAvailableByMaterial(materialId: number): Promise<Stock[]> {
     const [rows] = await db.query<Stock[]>(
       `SELECT 
-       s.*,
-       m.name AS material_name,
-       m.price AS material_price,
-       st.name AS storage_name,
-       st.location AS storage_location,
-       u.name AS seller_name
-     FROM stocks s
-     JOIN materials m ON s.material_id = m.id
-     JOIN bins b ON s.bin_id = b.id
-     JOIN storages st ON b.storage_id = st.id
-     JOIN users u ON s.seller_id = u.id
-     WHERE s.material_id = ? AND s.quantity > 0 AND s.status = 'active'`,
+        s.*,
+        m.name AS material_name,
+        m.price AS material_price,
+        st.name AS storage_name,
+        st.location AS storage_location,
+        u.name AS seller_name
+      FROM stocks s
+      JOIN materials m ON s.material_id = m.id
+      JOIN bins b ON s.bin_id = b.id
+      JOIN storages st ON b.storage_id = st.id
+      JOIN users u ON s.seller_id = u.id
+      WHERE s.material_id = ? AND s.quantity > 0 AND s.status = 'active'`,
       [materialId]
     );
     return rows;
