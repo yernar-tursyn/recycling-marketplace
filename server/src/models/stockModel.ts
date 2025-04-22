@@ -55,7 +55,19 @@ class StockModel {
   // Получение записей по материалу (material_id)
   static async findByMaterial(material_id: number): Promise<Stock[]> {
     const [rows] = await db.query<Stock[]>(
-      "SELECT * FROM stocks WHERE material_id = ?",
+      `SELECT 
+      s.*,
+      m.name AS material_name,
+      m.price AS material_price,
+      st.name AS storage_name,
+      st.location AS storage_location,
+      u.name AS seller_name
+    FROM stocks s
+    JOIN materials m ON s.material_id = m.id
+    JOIN bins b ON s.bin_id = b.id
+    JOIN storages st ON b.storage_id = st.id
+    JOIN users u ON s.seller_id = u.id
+    WHERE s.material_id = ?`,
       [material_id]
     );
     return rows;
@@ -143,7 +155,7 @@ class StockModel {
      JOIN bins b ON s.bin_id = b.id
      JOIN storages st ON b.storage_id = st.id
      JOIN users u ON s.seller_id = u.id
-     WHERE s.quantity > 0 AND s.status = 'active' AND s.material_id = ?`,
+     WHERE s.material_id = ? AND s.quantity > 0 AND s.status = 'active'`,
       [materialId]
     );
     return rows;
