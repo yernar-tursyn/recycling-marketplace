@@ -90,7 +90,7 @@ router.get("/available", findAvailableStocks);
 
 /**
  * @swagger
- * /stocks/material/{materialId}:
+ * api/stocks/available/material/:materialId:
  *   get:
  *     summary: Получить все доступные запасы по определённому материалу
  *     tags: [Stocks]
@@ -132,7 +132,7 @@ router.get("/available", findAvailableStocks);
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get("/stocks/material/:materialId", getAvailableStocksByMaterial);
+router.get("/available/material/:materialId", getAvailableStocksByMaterial);
 
 /**
  * @swagger
