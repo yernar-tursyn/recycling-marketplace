@@ -3,6 +3,10 @@ const nextConfig = {
   reactStrictMode: false,
   //output: "export",
   distDir: "dist",
+  images: {
+    unoptimized: true,
+    domains: ["media.istockphoto.com"],
+  },
   experimental: {
     typedRoutes: false,
   },

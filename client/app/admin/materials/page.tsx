@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  getAllMaterials,
+  updateMaterialStatus,
+} from "@/services/material-service";
+import type { MaterialType } from "@/types/material";
 import {
   Table,
   TableBody,
@@ -17,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,20 +25,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  getAllMaterials,
-  updateMaterialStatus,
-} from "@/services/material-service";
-import { addAdminLog } from "@/services/admin-service";
+import { MoreHorizontal, CheckCircle, XCircle, Eye } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { CheckCircle, MoreHorizontal, Package, XCircle } from "lucide-react";
-import type { MaterialType } from "@/types/material";
+import { addAdminLog } from "@/services/admin-service";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
-export default function MaterialsPage() {
-  const { user } = useAuth();
-  const { toast } = useToast();
+export default function AdminMaterialsPage() {
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -64,16 +66,28 @@ export default function MaterialsPage() {
 
   const handleUpdateStatus = async (materialId: string, newStatus: string) => {
     try {
-      await updateMaterialStatus(materialId, newStatus);
+      const updatedMaterial = await updateMaterialStatus(materialId, newStatus);
 
-      // Обновляем список материалов
       setMaterials(
         materials.map((m) =>
           m.id === materialId ? { ...m, status: newStatus } : m
         )
       );
 
-      // Логируем действие
+      try {
+        const { createMaterialNotification } = await import(
+          "@/services/notification-service"
+        );
+        await createMaterialNotification(
+          materialId,
+          updatedMaterial.name,
+          updatedMaterial.userId,
+          newStatus
+        );
+      } catch (error) {
+        console.error("Error creating notification:", error);
+      }
+
       if (user) {
         await addAdminLog({
           userId: user.id,
@@ -95,10 +109,23 @@ export default function MaterialsPage() {
         }"`,
       });
     } catch (error) {
+      console.error("Error updating material status:", error);
+      let errorMessage = "Не удалось обновить статус материала";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error
+      ) {
+        errorMessage = String((error as any).message);
+      }
+
       toast({
         variant: "destructive",
         title: "Ошибка",
-        description: "Не удалось обновить статус материала",
+        description: errorMessage,
       });
     }
   };
@@ -139,8 +166,8 @@ export default function MaterialsPage() {
         <CardHeader>
           <CardTitle>Список материалов</CardTitle>
           <CardDescription>
-            Управление материалами на платформе. Вы можете одобрять, отклонять и
-            модерировать материалы.
+            Управление материалами на платформе. Вы можете изменять статусы
+            материалов и модерировать их.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -149,9 +176,9 @@ export default function MaterialsPage() {
               <TableRow>
                 <TableHead>Название</TableHead>
                 <TableHead>Тип</TableHead>
+                <TableHead>Продавец</TableHead>
                 <TableHead>Цена (₸/кг)</TableHead>
                 <TableHead>Количество (кг)</TableHead>
-                <TableHead>Продавец</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead>Дата создания</TableHead>
                 <TableHead className="text-right">Действия</TableHead>
@@ -162,9 +189,9 @@ export default function MaterialsPage() {
                 <TableRow key={material.id}>
                   <TableCell className="font-medium">{material.name}</TableCell>
                   <TableCell>{getMaterialTypeLabel(material.type)}</TableCell>
+                  <TableCell>{material.userName}</TableCell>
                   <TableCell>{material.price}</TableCell>
                   <TableCell>{material.quantity}</TableCell>
-                  <TableCell>{material.userName}</TableCell>
                   <TableCell>
                     <Badge
                       variant={
@@ -173,11 +200,6 @@ export default function MaterialsPage() {
                           : material.status === "pending"
                           ? "secondary"
                           : "destructive"
-                      }
-                      className={
-                        material.status === "active"
-                          ? "bg-green-500 hover:bg-green-600"
-                          : ""
                       }
                     >
                       {material.status === "active"
@@ -200,37 +222,39 @@ export default function MaterialsPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Действия</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            router.push(`/marketplace/${material.id}`)
+                          }
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          <span>Просмотреть</span>
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        {material.status !== "active" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(material.id, "active")
-                            }
-                          >
-                            <CheckCircle className="mr-2 h-4 w-4" />
-                            <span>Одобрить</span>
-                          </DropdownMenuItem>
-                        )}
-                        {material.status !== "rejected" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(material.id, "rejected")
-                            }
-                          >
-                            <XCircle className="mr-2 h-4 w-4" />
-                            <span>Отклонить</span>
-                          </DropdownMenuItem>
-                        )}
-                        {material.status !== "pending" && (
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleUpdateStatus(material.id, "pending")
-                            }
-                          >
-                            <Package className="mr-2 h-4 w-4" />
-                            <span>Вернуть на проверку</span>
-                          </DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateStatus(material.id, "active")
+                          }
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          <span>Активировать</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateStatus(material.id, "pending")
+                          }
+                        >
+                          <CheckCircle className="mr-2 h-4 w-4" />
+                          <span>На проверку</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            handleUpdateStatus(material.id, "rejected")
+                          }
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          <span>Отклонить</span>
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

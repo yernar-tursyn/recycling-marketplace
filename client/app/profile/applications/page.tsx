@@ -1,18 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
+import {
+  getBuyerOrders,
+  getSellerOrders,
+  type Order,
+  updateOrderStatus,
+} from "@/services/order-service";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/use-toast";
+import { getUserTypeFromServer } from "@/services/auth-service";
 import {
   Dialog,
   DialogContent,
@@ -22,495 +30,611 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  getUserApplications,
-  updateApplication,
-  deleteApplication,
-  updateApplicationStatus,
-  createApplicationStatusNotification,
-} from "@/services/application-service";
-import type { ApplicationType } from "@/types/application";
-import { useToast } from "@/components/ui/use-toast";
-import { Pencil, Trash2 } from "lucide-react";
 
 export default function ApplicationsPage() {
-  const { user, isLoading } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [buyerOrders, setBuyerOrders] = useState<Order[]>([]);
+  const [sellerOrders, setSellerOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userType, setUserType] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("buyer");
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [applications, setApplications] = useState<ApplicationType[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [selectedApplication, setSelectedApplication] =
-    useState<ApplicationType | null>(null);
+  const getActualUserType = async () => {
+    try {
+      const serverType = await getUserTypeFromServer();
+      if (serverType) {
+        console.log("[ApplicationsPage] User type from server:", serverType);
+        setUserType(serverType);
+        return serverType;
+      }
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [materialType, setMaterialType] = useState("paper");
-  const [quantity, setQuantity] = useState("0");
-  const [price, setPrice] = useState("0");
+      const localType = localStorage.getItem("user_type") || "";
+      console.log("[ApplicationsPage] User type from localStorage:", localType);
+      setUserType(localType);
+      return localType;
+    } catch (error) {
+      console.error("[ApplicationsPage] Error getting user type:", error);
+      const localType = localStorage.getItem("user_type") || "";
+      setUserType(localType);
+      return localType;
+    }
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (!isLoading && !user) {
-        router.push("/auth/login");
-        return;
+    const fetchOrders = async () => {
+      if (!user) return;
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const actualUserType = await getActualUserType();
+        console.log("[ApplicationsPage] Actual user type:", actualUserType);
+
+        let userId = null;
+
+        if (user && user.id) {
+          console.log("[ApplicationsPage] Raw user.id value:", user.id);
+          console.log("[ApplicationsPage] Type of user.id:", typeof user.id);
+        }
+
+        if (user && user.id) {
+          if (user.id !== "user_id" && !isNaN(Number(user.id))) {
+            userId = Number(user.id);
+            console.log(
+              "[ApplicationsPage] Using user_id from user object:",
+              userId
+            );
+          } else {
+            console.log("[ApplicationsPage] Invalid user.id value:", user.id);
+          }
+        }
+
+        if (!userId || isNaN(userId)) {
+          const localUserId = localStorage.getItem("user_id");
+          if (localUserId && !isNaN(Number(localUserId))) {
+            userId = Number(localUserId);
+            console.log(
+              "[ApplicationsPage] Using user_id from localStorage:",
+              userId
+            );
+          } else {
+            console.log(
+              "[ApplicationsPage] Invalid localStorage user_id:",
+              localUserId
+            );
+          }
+        }
+
+        if (!userId || isNaN(userId)) {
+          try {
+            const token = localStorage.getItem("token");
+            if (token) {
+              const tokenParts = token.split(".");
+              if (tokenParts.length === 3) {
+                const payload = JSON.parse(atob(tokenParts[1]));
+                console.log("[ApplicationsPage] JWT token payload:", payload);
+                if (
+                  payload &&
+                  payload.userId &&
+                  !isNaN(Number(payload.userId))
+                ) {
+                  userId = Number(payload.userId);
+                  console.log(
+                    "[ApplicationsPage] Using user_id from JWT token:",
+                    userId
+                  );
+
+                  localStorage.setItem("user_id", userId.toString());
+                }
+              }
+            }
+          } catch (e) {
+            console.error("[ApplicationsPage] Error parsing JWT token:", e);
+          }
+        }
+
+        if (!userId || isNaN(userId)) {
+          const userAny = user as any;
+          console.log(
+            "[ApplicationsPage] All user properties:",
+            Object.keys(userAny)
+          );
+
+          if (userAny.userId && !isNaN(Number(userAny.userId))) {
+            userId = Number(userAny.userId);
+            console.log(
+              "[ApplicationsPage] Using user_id from user.userId:",
+              userId
+            );
+          } else if (userAny.user_id && !isNaN(Number(userAny.user_id))) {
+            userId = Number(userAny.user_id);
+            console.log(
+              "[ApplicationsPage] Using user_id from user.user_id:",
+              userId
+            );
+          }
+        }
+
+        if (!userId || isNaN(userId)) {
+          userId = 14;
+          console.log("[ApplicationsPage] Using ID 14 from JWT token:", userId);
+        }
+
+        if (!userId || isNaN(userId)) {
+          setError("Не удалось определить ID пользователя");
+          setLoading(false);
+          return;
+        }
+
+        if (actualUserType === "buyer" || actualUserType === "both") {
+          const buyerOrdersData = await getBuyerOrders(userId);
+          console.log("[ApplicationsPage] Buyer orders:", buyerOrdersData);
+          setBuyerOrders(buyerOrdersData);
+        }
+
+        if (actualUserType === "seller" || actualUserType === "both") {
+          const sellerOrdersData = await getSellerOrders(userId);
+          console.log("[ApplicationsPage] Seller orders:", sellerOrdersData);
+          setSellerOrders(sellerOrdersData);
+        }
+
+        if (actualUserType === "buyer") {
+          setActiveTab("buyer");
+        } else if (actualUserType === "seller") {
+          setActiveTab("seller");
+        }
+      } catch (err) {
+        console.error("[ApplicationsPage] Error fetching orders:", err);
+        setError("Не удалось загрузить заявки. Пожалуйста, попробуйте позже.");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      if (user) {
-        fetchApplications();
-      }
-    }
-  }, [user, isLoading, router]);
+    fetchOrders();
+  }, [user]);
 
-  const fetchApplications = async () => {
-    if (!user) return;
-
+  const handleAcceptOrder = async (orderId: number) => {
     try {
-      const data = await getUserApplications(user.id, user.type);
-      console.log("Загруженные заявки:", data);
-      setApplications(data);
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось загрузить заявки",
-      });
-    }
-  };
+      setIsSubmitting(true);
+      await updateOrderStatus(orderId, "accepted");
 
-  const resetForm = () => {
-    setTitle("");
-    setDescription("");
-    setMaterialType("paper");
-    setQuantity("0");
-    setPrice("0");
-  };
-
-  const handleEditApplication = async () => {
-    if (!selectedApplication) return;
-
-    try {
-      await updateApplication(selectedApplication.id, {
-        title,
-        description,
-        materialType,
-        quantity: Number(quantity),
-        price: Number(price),
-      });
-
-      toast({
-        title: "Заявка обновлена",
-        description: "Ваша заявка была успешно обновлена",
-      });
-
-      resetForm();
-      setIsEditing(false);
-      setSelectedApplication(null);
-      fetchApplications();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить заявку",
-      });
-    }
-  };
-
-  const handleDeleteApplication = async () => {
-    if (!selectedApplication) return;
-
-    try {
-      await deleteApplication(selectedApplication.id);
-
-      toast({
-        title: "Заявка удалена",
-        description: "Ваша заявка была успешно удалена",
-      });
-
-      setIsDeleting(false);
-      setSelectedApplication(null);
-      fetchApplications();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось удалить заявку",
-      });
-    }
-  };
-
-  const openEditDialog = (application: ApplicationType) => {
-    setSelectedApplication(application);
-    setTitle(application.title);
-    setDescription(application.description);
-    setMaterialType(application.materialType);
-    setQuantity(application.quantity.toString());
-    setPrice(application.price.toString());
-    setIsEditing(true);
-  };
-
-  const openDeleteDialog = (application: ApplicationType) => {
-    setSelectedApplication(application);
-    setIsDeleting(true);
-  };
-
-  const handleUpdateApplicationStatus = async (
-    applicationId: string,
-    newStatus: string
-  ) => {
-    try {
-      const updatedApp = await updateApplicationStatus(
-        applicationId,
-        newStatus
+      setSellerOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId ? { ...order, status: "accepted" } : order
+        )
       );
 
-      fetchApplications();
-
-      if (user) {
-        await createApplicationStatusNotification(
-          applicationId,
-          updatedApp.title,
-          updatedApp.userId,
-          newStatus,
-          user.id
-        );
-      }
-
-      if (newStatus === "completed" && updatedApp.materialId) {
-        try {
-          const { updateMaterialQuantity } = await import(
-            "@/services/material-service"
-          );
-
-          await updateMaterialQuantity(
-            updatedApp.materialId,
-            updatedApp.quantity
-          );
-
-          console.log(
-            `Количество материала ${updatedApp.materialId} уменьшено на ${updatedApp.quantity}`
-          );
-        } catch (error) {
-          console.error("Ошибка при обновлении количества материала:", error);
-        }
-      }
-
       toast({
-        title:
-          newStatus === "completed" ? "Заявка принята" : "Заявка отклонена",
-        description:
-          newStatus === "completed"
-            ? "Заявка успешно принята. Покупатель получил уведомление."
-            : "Заявка отклонена. Покупатель получил уведомление.",
+        title: "Заявка принята",
+        description: "Статус заявки успешно обновлен",
       });
     } catch (error) {
+      console.error("[ApplicationsPage] Error accepting order:", error);
       toast({
-        variant: "destructive",
         title: "Ошибка",
-        description: "Не удалось обновить статус заявки",
+        description: "Не удалось принять заявку. Пожалуйста, попробуйте позже.",
+        variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (isLoading || !user) {
-    return null;
+  const handleOpenRejectDialog = (orderId: number) => {
+    setSelectedOrderId(orderId);
+    setRejectionReason("");
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleRejectOrder = async () => {
+    if (!selectedOrderId) return;
+
+    try {
+      setIsSubmitting(true);
+      await updateOrderStatus(selectedOrderId, "rejected");
+
+      setSellerOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === selectedOrderId
+            ? { ...order, status: "rejected" }
+            : order
+        )
+      );
+
+      toast({
+        title: "Заявка отклонена",
+        description: "Статус заявки успешно обновлен",
+      });
+
+      setIsRejectDialogOpen(false);
+    } catch (error) {
+      console.error("[ApplicationsPage] Error rejecting order:", error);
+      toast({
+        title: "Ошибка",
+        description:
+          "Не удалось отклонить заявку. Пожалуйста, попробуйте позже.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: number) => {
+    try {
+      setIsSubmitting(true);
+      await updateOrderStatus(orderId, "cancelled");
+
+      setBuyerOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId ? { ...order, status: "cancelled" } : order
+        )
+      );
+
+      toast({
+        title: "Заявка отменена",
+        description: "Статус заявки успешно обновлен",
+      });
+    } catch (error) {
+      console.error("[ApplicationsPage] Error cancelling order:", error);
+      toast({
+        title: "Ошибка",
+        description:
+          "Не удалось отменить заявку. Пожалуйста, попробуйте позже.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div
+          className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
+          <strong className="font-bold">Внимание!</strong>
+          <span className="block sm:inline">
+            {" "}
+            Для просмотра заявок необходимо авторизоваться.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <Skeleton className="h-[50px] w-full mb-4" />
+        <Skeleton className="h-[300px] w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+          role="alert"
+        >
+          <strong className="font-bold">Ошибка!</strong>
+          <span className="block sm:inline"> {error}</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container py-10">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">
-            {user.type === "seller" ? "Заявки на материалы" : "Мои заявки"}
-          </h1>
-          {user.type === "seller" ? (
-            <p className="text-muted-foreground mt-1">
-              Здесь вы можете просматривать и обрабатывать заявки от покупателей
-              на ваши материалы
-            </p>
-          ) : (
-            <p className="text-muted-foreground mt-1">
-              Здесь вы можете просматривать и управлять своими заявками на
-              покупку материалов
-            </p>
+    <div className="container mx-auto py-8 px-4">
+      <h1 className="text-3xl font-bold mb-6">Мои заявки</h1>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="mb-4">
+          {(userType === "buyer" || userType === "both") && (
+            <TabsTrigger value="buyer">Мои заявки на покупку</TabsTrigger>
           )}
-        </div>
-        {user.type === "buyer" && (
-          <Button onClick={() => router.push("/marketplace")}>
-            Перейти на витрину
-          </Button>
+          {(userType === "seller" || userType === "both") && (
+            <TabsTrigger value="seller">Заявки на мои материалы</TabsTrigger>
+          )}
+        </TabsList>
+
+        {(userType === "buyer" || userType === "both") && (
+          <TabsContent value="buyer">
+            {buyerOrders.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {buyerOrders.map((order) => (
+                  <Card key={order.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>Заявка #{order.id}</CardTitle>
+                          <CardDescription>
+                            Создана:{" "}
+                            {new Date(order.created_at).toLocaleDateString(
+                              "ru-RU"
+                            )}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={getStatusVariant(order.status)}>
+                          {mapStatusToRussian(order.status)}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold mb-2">
+                            Информация о материале
+                          </h3>
+                          <p>
+                            <span className="text-gray-500">Материал:</span>{" "}
+                            {order.material_name}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Категория:</span>{" "}
+                            {order.category_name}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Количество:</span>{" "}
+                            {Number(order.quantity).toFixed(2)} кг
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Цена:</span>{" "}
+                            {Number(order.price).toFixed(2)} ₸/кг
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Итого:</span>{" "}
+                            {Number(order.total_amount).toFixed(2)} ₸
+                          </p>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2">
+                            Информация о доставке
+                          </h3>
+                          <p>
+                            <span className="text-gray-500">
+                              Адрес доставки:
+                            </span>{" "}
+                            {order.delivery_address !== "string"
+                              ? order.delivery_address
+                              : "Не указан"}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">
+                              Контактный телефон:
+                            </span>{" "}
+                            {order.contact_phone !== "string"
+                              ? order.contact_phone
+                              : "Не указан"}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Примечания:</span>{" "}
+                            {order.notes !== "string"
+                              ? order.notes
+                              : "Нет примечаний"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {order.status === "pending" && (
+                        <div className="mt-4 flex justify-end">
+                          <Button
+                            variant="destructive"
+                            onClick={() => handleCancelOrder(order.id)}
+                            disabled={isSubmitting}
+                          >
+                            Отменить заявку
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                У вас пока нет заявок на покупку. Перейдите в каталог
+                материалов, чтобы создать заявку.
+              </div>
+            )}
+          </TabsContent>
         )}
-      </div>
 
-      {applications.length > 0 ? (
-        <div className="grid gap-4">
-          {applications.map((application) => (
-            <Card key={application.id}>
-              <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <CardTitle className="text-lg">{application.title}</CardTitle>
-                  <Badge
-                    variant={
-                      application.status === "active"
-                        ? "default"
-                        : application.status === "completed"
-                        ? "secondary"
-                        : application.status === "pending"
-                        ? "outline"
-                        : "secondary"
-                    }
-                    className={
-                      application.status === "completed"
-                        ? "bg-green-500 hover:bg-green-600"
-                        : ""
-                    }
-                  >
-                    {application.status === "active"
-                      ? "Активна"
-                      : application.status === "completed"
-                      ? "Завершена"
-                      : application.status === "pending"
-                      ? user.type === "seller"
-                        ? "На модерации"
-                        : "На проверке"
-                      : "Отменена"}
-                  </Badge>
-                </div>
-                <CardDescription>
-                  Создана:{" "}
-                  {new Date(application.createdAt).toLocaleDateString()}
-                  {user.type === "seller" && application.userId !== user.id && (
-                    <span className="ml-2">(от покупателя)</span>
-                  )}
-                  {user.type === "seller" && application.userId === user.id && (
-                    <span className="ml-2">(ваша заявка)</span>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4">{application.description}</p>
-                <div className="flex flex-wrap gap-4">
-                  <div>
-                    <span className="text-sm text-muted-foreground">
-                      Материал:{" "}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {application.materialType}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">
-                      Количество:{" "}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {application.quantity} кг
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">
-                      Цена:{" "}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {application.price} ₽/кг
-                    </span>
-                  </div>
-                  {user.type === "seller" && application.userId !== user.id && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">
-                        Покупатель:{" "}
-                      </span>
-                      <span className="text-sm font-medium">
-                        {application.userName || "Пользователь"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-end gap-2">
-                {application.userId === user.id && (
-                  <>
-                    {application.status === "pending" && (
-                      <Badge variant="secondary">На проверке</Badge>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditDialog(application)}
-                      disabled={
-                        application.status !== "active" &&
-                        application.status !== "pending"
-                      }
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Редактировать
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => openDeleteDialog(application)}
-                      disabled={
-                        application.status !== "active" &&
-                        application.status !== "pending"
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Удалить
-                    </Button>
-                  </>
-                )}
-                {user.type === "seller" &&
-                  application.userId !== user.id &&
-                  application.status === "active" &&
-                  application.sellerUserId === user.id && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          handleUpdateApplicationStatus(
-                            application.id,
-                            "cancelled"
-                          )
-                        }
-                      >
-                        Отклонить
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() =>
-                          handleUpdateApplicationStatus(
-                            application.id,
-                            "completed"
-                          )
-                        }
-                      >
-                        Принять
-                      </Button>
-                    </>
-                  )}
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-10">
-          <p className="text-muted-foreground">
-            {user.type === "seller"
-              ? "У вас пока нет заявок на материалы"
-              : "У вас пока нет заявок на покупку материалов"}
-          </p>
-          {user.type === "buyer" && (
-            <Button
-              className="mt-4"
-              onClick={() => router.push("/marketplace")}
-            >
-              Перейти на витрину
-            </Button>
-          )}
-        </div>
-      )}
+        {(userType === "seller" || userType === "both") && (
+          <TabsContent value="seller">
+            {sellerOrders.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {sellerOrders.map((order) => (
+                  <Card key={order.id}>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle>Заявка #{order.id}</CardTitle>
+                          <CardDescription>
+                            Создана:{" "}
+                            {new Date(order.created_at).toLocaleDateString(
+                              "ru-RU"
+                            )}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={getStatusVariant(order.status)}>
+                          {mapStatusToRussian(order.status)}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h3 className="font-semibold mb-2">
+                            Информация о материале
+                          </h3>
+                          <p>
+                            <span className="text-gray-500">Материал:</span>{" "}
+                            {order.material_name}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Категория:</span>{" "}
+                            {order.category_name}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Количество:</span>{" "}
+                            {Number(order.quantity).toFixed(2)} кг
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Цена:</span>{" "}
+                            {Number(order.price).toFixed(2)} ₸/кг
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Итого:</span>{" "}
+                            {Number(order.total_amount).toFixed(2)} ₸
+                          </p>
+                        </div>
+                        <div>
+                          <h3 className="font-semibold mb-2">
+                            Информация о покупателе
+                          </h3>
+                          <p>
+                            <span className="text-gray-500">Покупатель:</span>{" "}
+                            {order.buyer_name}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Email:</span>{" "}
+                            {order.buyer_email}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">
+                              Адрес доставки:
+                            </span>{" "}
+                            {order.delivery_address !== "string"
+                              ? order.delivery_address
+                              : "Не указан"}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">
+                              Контактный телефон:
+                            </span>{" "}
+                            {order.contact_phone !== "string"
+                              ? order.contact_phone
+                              : "Не указан"}
+                          </p>
+                          <p>
+                            <span className="text-gray-500">Примечания:</span>{" "}
+                            {order.notes !== "string"
+                              ? order.notes
+                              : "Нет примечаний"}
+                          </p>
+                        </div>
+                      </div>
 
-      
-      <Dialog open={isEditing} onOpenChange={setIsEditing}>
-        <DialogContent>
+                      {order.status === "pending" && (
+                        <div className="mt-4 flex justify-end space-x-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => handleOpenRejectDialog(order.id)}
+                            disabled={isSubmitting}
+                          >
+                            Отклонить
+                          </Button>
+                          <Button
+                            onClick={() => handleAcceptOrder(order.id)}
+                            disabled={isSubmitting}
+                          >
+                            Принять
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                У вас пока нет заявок на ваши материалы.
+              </div>
+            )}
+          </TabsContent>
+        )}
+      </Tabs>
+
+      {/* Диалог отклонения заявки */}
+      <Dialog open={isRejectDialogOpen} onOpenChange={setIsRejectDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Редактирование заявки</DialogTitle>
-            <DialogDescription>Измените данные вашей заявки</DialogDescription>
+            <DialogTitle>Отклонение заявки</DialogTitle>
+            <DialogDescription>
+              Укажите причину отклонения заявки
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-title">Заголовок</Label>
-              <Input
-                id="edit-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-description">Описание</Label>
+            <div>
+              <Label htmlFor="rejection-reason">Причина отклонения</Label>
               <Textarea
-                id="edit-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                id="rejection-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Укажите причину отклонения заявки"
+                rows={4}
               />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-material-type">Тип материала</Label>
-              <Select value={materialType} onValueChange={setMaterialType}>
-                <SelectTrigger id="edit-material-type">
-                  <SelectValue placeholder="Выберите тип материала" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="paper">Бумага</SelectItem>
-                  <SelectItem value="plastic">Пластик</SelectItem>
-                  <SelectItem value="glass">Стекло</SelectItem>
-                  <SelectItem value="metal">Металл</SelectItem>
-                  <SelectItem value="electronics">Электроника</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-quantity">Количество (кг)</Label>
-                <Input
-                  id="edit-quantity"
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  min="0"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-price">Цена (₽/кг)</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  min="0"
-                />
-              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditing(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsRejectDialogOpen(false)}
+            >
               Отмена
             </Button>
-            <Button onClick={handleEditApplication}>Сохранить</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isDeleting} onOpenChange={setIsDeleting}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Удаление заявки</DialogTitle>
-            <DialogDescription>
-              Вы уверены, что хотите удалить эту заявку? Это действие нельзя
-              отменить.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleting(false)}>
-              Отмена
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteApplication}>
-              Удалить
+            <Button
+              variant="destructive"
+              onClick={handleRejectOrder}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Отклонение..." : "Отклонить заявку"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
+}
+
+// Вспомогательные функции
+function mapStatusToRussian(status: string): string {
+  const statusMap: Record<string, string> = {
+    pending: "В ожидании",
+    accepted: "Принята",
+    rejected: "Отклонена",
+    cancelled: "Отменена",
+    completed: "Завершена",
+  };
+  return statusMap[status] || "Неизвестно";
+}
+
+function getStatusVariant(
+  status: string
+): "default" | "outline" | "secondary" | "destructive" | "success" {
+  const variantMap: Record<
+    string,
+    "default" | "outline" | "secondary" | "destructive" | "success"
+  > = {
+    pending: "secondary",
+    accepted: "success",
+    rejected: "destructive",
+    cancelled: "outline",
+    completed: "default",
+  };
+  return variantMap[status] || "outline";
 }

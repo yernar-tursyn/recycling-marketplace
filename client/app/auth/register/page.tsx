@@ -5,7 +5,6 @@ import type React from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +35,6 @@ export default function RegisterPage() {
     confirmPassword?: string;
   }>({});
 
-  const { register } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -80,14 +78,23 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const success = await register(name, email, password, userType);
+      const userTypeForAPI = userType;
+      const { registerUser } = await import("@/services/auth-service");
+      const response = await registerUser(
+        name,
+        email,
+        password,
+        userTypeForAPI
+      );
 
-      if (success) {
+      if (response.success) {
         toast({
           title: "Регистрация успешна",
-          description: "Вы успешно зарегистрировались",
+          description:
+            "Вы успешно зарегистрировались. Теперь вы можете войти в систему.",
         });
-        router.push("/profile");
+
+        router.push("/auth/login?registered=true");
       } else {
         toast({
           variant: "destructive",
@@ -204,6 +211,14 @@ export default function RegisterPage() {
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="seller" id="seller" />
                     <Label htmlFor="seller">Продавец (сдаю вторсырье)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="manager" id="role-manager" />
+                    <Label htmlFor="role-manager">Менеджер</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="admin" id="role-admin" />
+                    <Label htmlFor="role-admin">Администратор</Label>
                   </div>
                 </RadioGroup>
               </div>

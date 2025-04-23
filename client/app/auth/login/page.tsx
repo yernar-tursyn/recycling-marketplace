@@ -2,9 +2,9 @@
 
 import type React from "react";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Eye, EyeOff, Info } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CheckCircle } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -26,65 +28,45 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-import { debugUsers } from "@/services/auth-service";
-
-const handleDebug = () => {
-  console.log("[Debug] Checking users in system");
-  const users = debugUsers();
-  console.log("[Debug] Available users:", users);
-};
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  );
+  const [showRegistrationSuccess, setShowRegistrationSuccess] = useState(false);
 
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
-
-    if (!email) {
-      newErrors.email = "Email обязателен";
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Некорректный email";
+  useEffect(() => {
+    const registered = searchParams.get("registered");
+    if (registered === "true") {
+      setShowRegistrationSuccess(true);
     }
+  }, [searchParams]);
 
-    if (!password) {
-      newErrors.password = "Пароль обязателен";
+  useEffect(() => {
+    if (user) {
+      router.push("/profile");
     }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateForm()) return;
-
     setIsLoading(true);
-    console.log("[Login Page] Submitting login form for:", email);
 
     try {
       const success = await login(email, password);
-      console.log("[Login Page] Login result:", success);
 
       if (success) {
         toast({
-          title: "Успешный вход",
+          title: "Вход выполнен",
           description: "Вы успешно вошли в систему",
         });
-        console.log("[Login Page] Redirecting to profile");
         router.push("/profile");
       } else {
-        console.log("[Login Page] Login failed");
         toast({
           variant: "destructive",
           title: "Ошибка входа",
@@ -92,7 +74,6 @@ export default function LoginPage() {
         });
       }
     } catch (error) {
-      console.log("[Login Page] Login error:", error);
       toast({
         variant: "destructive",
         title: "Ошибка",
@@ -126,12 +107,23 @@ export default function LoginPage() {
 
   return (
     <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[400px]">
+        {showRegistrationSuccess && (
+          <Alert className="mb-4 border-green-500 bg-green-50">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <AlertDescription className="text-green-700">
+              Регистрация прошла успешно! Теперь вы можете войти в систему.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Вход</CardTitle>
+            <CardTitle className="text-2xl text-center">
+              Вход в систему
+            </CardTitle>
             <CardDescription className="text-center">
-              Введите свои данные для входа
+              Введите свои учетные данные для входа
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -146,12 +138,17 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
                 />
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="password">Пароль</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Пароль</Label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-muted-foreground hover:underline"
+                  >
+                    Забыли пароль?
+                  </Link>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
@@ -178,9 +175,6 @@ export default function LoginPage() {
                     </span>
                   </Button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
               </div>
 
               <Accordion type="single" collapsible className="w-full">
@@ -249,14 +243,6 @@ export default function LoginPage() {
                   Зарегистрироваться
                 </Link>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="mt-4"
-                onClick={handleDebug}
-              >
-                Проверить пользователей
-              </Button>
             </CardFooter>
           </form>
         </Card>

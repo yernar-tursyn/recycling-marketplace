@@ -41,6 +41,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     ) {
       router.push("/admin/login");
     } else if (user && (user.role === "admin" || user.role === "manager")) {
+      const token =
+        localStorage.getItem("token") || localStorage.getItem("admin_token");
+      console.log(
+        "Admin panel accessed with token:",
+        token ? "present" : "missing"
+      );
+
       addAdminLog({
         userId: user.id,
         userName: user.name,
@@ -149,13 +156,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     },
   ];
 
-  const filteredNavItems = navItems.filter((item) =>
-    item.access.includes(user.role)
+  const filteredNavItems = navItems.filter(
+    (item) => user.role && item.access.includes(user.role)
   );
 
   const currentPageItem = navItems.find((item) => pathname === item.href);
   const hasAccessToCurrentPage = currentPageItem
-    ? currentPageItem.access.includes(user.role)
+    ? user.role && currentPageItem.access.includes(user.role)
     : true;
 
   if (!hasAccessToCurrentPage) {
@@ -218,10 +225,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                   {item.access.includes("admin") &&
                     !item.access.includes("manager") && (
                       <div
-                        className="relative ml-auto"
+                        className="ml-auto flex items-center"
                         title="Только для администраторов"
                       >
-                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                        <AlertTriangle
+                          className="h-4 w-4 text-yellow-500"
+                          aria-label="Только для администраторов"
+                        />
                       </div>
                     )}
                 </Link>
@@ -243,7 +253,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             pathname.includes("/admin/system-settings") && (
               <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800 dark:border-yellow-900 dark:bg-yellow-950 dark:text-yellow-200">
                 <div className="flex items-center">
-                  <AlertTriangle className="mr-2 h-5 w-5" aria-hidden="true" />
+                  <AlertTriangle className="mr-2 h-5 w-5" />
                   <p className="font-medium">Ограниченный доступ</p>
                 </div>
                 <p className="mt-2 text-sm">

@@ -11,21 +11,21 @@ const getApplicationsFromStorage = (): ApplicationType[] => {
   }
 
   const initialApplications = [
-    // {
-    //   id: uuidv4(),
-    //   title: "Сдам 50 кг макулатуры",
-    //   description: "Газеты, журналы, книги в хорошем состоянии",
-    //   materialType: "paper",
-    //   materialId: "material1",
-    //   sellerUserId: "user1", // Изменено с user2 на user1, чтобы это была заявка самого продавца
-    //   quantity: 50,
-    //   price: 15,
-    //   userId: "user1", // Теперь userId и sellerUserId совпадают, это заявка самого продавца
-    //   userName: "Иван Петров",
-    //   status: "active",
-    //   createdAt: new Date().toISOString(),
-    //   updatedAt: new Date().toISOString(),
-    // },
+    {
+      id: uuidv4(),
+      title: "Сдам 50 кг макулатуры",
+      description: "Газеты, журналы, книги в хорошем состоянии",
+      materialType: "paper",
+      materialId: "material1",
+      sellerUserId: "user1",
+      quantity: 50,
+      price: 15,
+      userId: "user1",
+      userName: "Иван Петров",
+      status: "active",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
     {
       id: uuidv4(),
       title: "Куплю алюминиевые банки",
@@ -147,8 +147,7 @@ export const createApplication = async (
     } catch (error) {
       console.error("Error sending notification to admins:", error);
     }
-  }
-  else if (userType === "buyer" && application.sellerUserId) {
+  } else if (userType === "buyer" && application.sellerUserId) {
     try {
       const { createNotificationForUser } = await import(
         "@/services/notification-service"
@@ -215,6 +214,40 @@ export const updateApplicationStatus = async (id: string, status: string) => {
 
   saveApplications(applications);
 
+  const token =
+    localStorage.getItem("token") || localStorage.getItem("admin_token");
+
+  try {
+    const API_URL =
+      "https://recycling-marketplace-backend.onrender.com/api/applications";
+    const updateUrl = `${API_URL}/${id}`;
+
+    console.log(`Updating application status in API: ${updateUrl}`);
+
+    const applicationToUpdate = applications[index];
+
+    const response = await fetch(updateUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(applicationToUpdate),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `API request failed with status ${response.status}: ${errorText}`
+      );
+    } else {
+      const result = await response.json();
+      console.log("Application status successfully updated in API:", result);
+    }
+  } catch (error) {
+    console.error("Failed to update application status in API:", error);
+  }
+
   return applications[index];
 };
 
@@ -239,15 +272,12 @@ export const getUserApplications = async (
 
   if (userType === "seller") {
     return applications.filter(
-      (a) =>
-        a.sellerUserId === userId || 
-        a.userId === userId 
+      (a) => a.sellerUserId === userId || a.userId === userId
     );
   }
 
   return applications.filter((a) => a.userId === userId);
 };
-
 
 export const createApplicationStatusNotification = async (
   applicationId: string,

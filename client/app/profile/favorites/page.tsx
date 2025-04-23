@@ -4,35 +4,24 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { useFavorites } from "@/context/favorites-context";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import { getMaterialById } from "@/services/material-service";
 import type { MaterialType } from "@/types/material";
-import { Heart } from "lucide-react";
+import { MaterialCard } from "@/components/material-card";
 
 export default function FavoritesPage() {
-  const { user, isLoading } = useAuth();
-  const {
-    favorites,
-    toggleFavorite,
-    isLoading: favoritesLoading,
-  } = useFavorites();
+  const { user, isLoading: authLoading } = useAuth();
+  const { favorites, isLoading: favoritesLoading } = useFavorites();
   const router = useRouter();
 
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (!isLoading && !user) {
+      if (!authLoading && !user) {
         router.push("/auth/login");
         return;
       }
@@ -43,28 +32,48 @@ export default function FavoritesPage() {
         setIsLoadingMaterials(false);
       }
     }
-  }, [user, isLoading, router, favorites, favoritesLoading]);
+  }, [user, authLoading, router, favorites, favoritesLoading]);
 
   const fetchFavoriteMaterials = async () => {
     setIsLoadingMaterials(true);
+    setError(null);
 
     try {
       const materialsData = await Promise.all(
-        favorites.map((id) => getMaterialById(id))
+        favorites.map(async (id) => {
+          try {
+            return await getMaterialById(id);
+          } catch (error) {
+            console.error(`Error fetching material ${id}:`, error);
+            return null;
+          }
+        })
       );
-      setMaterials(materialsData);
+
+      setMaterials(
+        materialsData.filter(
+          (material): material is MaterialType => material !== null
+        )
+      );
     } catch (error) {
       console.error("Error fetching favorite materials:", error);
+      setError(
+        "Не удалось загрузить избранные материалы. Пожалуйста, попробуйте позже."
+      );
     } finally {
       setIsLoadingMaterials(false);
     }
   };
 
-  const handleMaterialClick = (id: string) => {
-    router.push(`/marketplace/${id}`);
-  };
+  if (authLoading) {
+    return (
+      <div className="container py-10 flex justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  if (isLoading || favoritesLoading || !user) {
+  if (!user) {
     return null;
   }
 
@@ -72,8 +81,22 @@ export default function FavoritesPage() {
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-6">Избранное</h1>
 
-      {isLoadingMaterials ? (
+      {error && (
+        <div className="bg-destructive/10 text-destructive p-4 rounded-md mb-6">
+          <p>{error}</p>
+          <Button
+            variant="outline"
+            className="mt-2"
+            onClick={fetchFavoriteMaterials}
+          >
+            Попробовать снова
+          </Button>
+        </div>
+      )}
+
+      {isLoadingMaterials || favoritesLoading ? (
         <div className="text-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">
             Загрузка избранных материалов...
           </p>
@@ -81,51 +104,7 @@ export default function FavoritesPage() {
       ) : materials.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {materials.map((material) => (
-            <Card key={material.id} className="overflow-hidden">
-              <div
-                className="h-48 bg-muted bg-cover bg-center cursor-pointer"
-                style={{ backgroundImage: `url(${material.image})` }}
-                onClick={() => handleMaterialClick(material.id)}
-              />
-              <CardHeader
-                className="p-4 cursor-pointer"
-                onClick={() => handleMaterialClick(material.id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-lg">{material.name}</CardTitle>
-                    <CardDescription>{material.type}</CardDescription>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(material.id);
-                    }}
-                  >
-                    <Heart className="h-5 w-5 fill-primary text-primary" />
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent
-                className="p-4 pt-0 cursor-pointer"
-                onClick={() => handleMaterialClick(material.id)}
-              >
-                <p className="text-sm line-clamp-2">{material.description}</p>
-              </CardContent>
-              <CardFooter
-                className="p-4 flex justify-between cursor-pointer"
-                onClick={() => handleMaterialClick(material.id)}
-              >
-                <Badge
-                  variant={material.dealType === "buy" ? "default" : "outline"}
-                >
-                  {material.dealType === "buy" ? "Покупка" : "Продажа"}
-                </Badge>
-                <span className="font-bold">{material.price} ₸/кг</span>
-              </CardFooter>
-            </Card>
+            <MaterialCard key={material.id} material={material} />
           ))}
         </div>
       ) : (

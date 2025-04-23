@@ -122,10 +122,23 @@ export default function ApplicationsPage() {
         }"`,
       });
     } catch (error) {
+      console.error("Error updating application status:", error);
+      let errorMessage = "Не удалось обновить статус заявки";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error
+      ) {
+        errorMessage = String((error as any).message);
+      }
+
       toast({
         variant: "destructive",
         title: "Ошибка",
-        description: "Не удалось обновить статус заявки",
+        description: errorMessage,
       });
     }
   };
@@ -178,7 +191,7 @@ export default function ApplicationsPage() {
                 <TableHead>Пользователь</TableHead>
                 <TableHead>Тип материала</TableHead>
                 <TableHead>Количество (кг)</TableHead>
-                <TableHead>Цена (₽/кг)</TableHead>
+                <TableHead>Цена (₸/кг)</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead>Дата создания</TableHead>
                 <TableHead className="text-right">Действия</TableHead>

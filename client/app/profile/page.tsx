@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getUserApplications } from "@/services/application-service";
-import { getUserMaterials } from "@/services/material-service";
+import { getUserMaterials, getAllMaterials } from "@/services/material-service";
 import type { ApplicationType } from "@/types/application";
 import type { MaterialType } from "@/types/material";
 import { Badge } from "@/components/ui/badge";
@@ -35,11 +35,10 @@ export default function ProfilePage() {
   const router = useRouter();
   const [applications, setApplications] = useState<ApplicationType[]>([]);
   const [materials, setMaterials] = useState<MaterialType[]>([]);
+  const [allMaterials, setAllMaterials] = useState<MaterialType[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Исправим отображение счетчика заявок в профиле, чтобы учитывать все статусы заявок
   useEffect(() => {
-    // Check if we're in a browser environment before accessing localStorage
     if (typeof window !== "undefined") {
       if (!isLoading && !user) {
         router.push("/auth/login");
@@ -57,6 +56,11 @@ export default function ProfilePage() {
               const materialsData = await getUserMaterials(user.id);
               setMaterials(materialsData);
             }
+
+            if (user.role === "admin" || user.role === "manager") {
+              const allMaterialsData = await getAllMaterials();
+              setAllMaterials(allMaterialsData);
+            }
           } catch (error) {
             console.error("Error fetching user data:", error);
           }
@@ -70,6 +74,11 @@ export default function ProfilePage() {
   if (!user) {
     return null;
   }
+
+  const pendingMaterialsCount =
+    user.role === "admin" || user.role === "manager"
+      ? allMaterials.filter((m) => m.status === "pending").length
+      : 0;
 
   return (
     <div className="container py-10">
@@ -207,7 +216,6 @@ export default function ProfilePage() {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {user.role === "admin" || user.role === "manager" ? (
-                      // Показываем метрики для администраторов и менеджеров
                       <>
                         <Card>
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -218,10 +226,7 @@ export default function ProfilePage() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">
-                              {/* Здесь должен быть запрос к API для получения реальных данных */}
-                              <span title="В реальном приложении здесь будет динамическое значение">
-                                -
-                              </span>
+                              <span title="Динамическое значение">-</span>
                             </div>
                             <p className="text-xs text-muted-foreground">
                               За последние 7 дней
@@ -237,12 +242,7 @@ export default function ProfilePage() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">
-                              {/* Здесь будет реальное количество материалов на модерации */}
-                              {
-                                materials.filter(
-                                  (mat) => mat.status === "pending"
-                                ).length
-                              }
+                              {pendingMaterialsCount}
                             </div>
                             <p className="text-xs text-muted-foreground">
                               Материалы, требующие проверки
@@ -258,7 +258,6 @@ export default function ProfilePage() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">
-                              {/* Здесь будет реальное количество активных заявок */}
                               {
                                 applications.filter(
                                   (app) => app.status === "active"
@@ -279,7 +278,6 @@ export default function ProfilePage() {
                           </CardHeader>
                           <CardContent>
                             <div className="text-2xl font-bold">
-                              {/* Здесь будет реальное количество завершенных сделок */}
                               {
                                 applications.filter(
                                   (app) => app.status === "completed"
@@ -293,7 +291,6 @@ export default function ProfilePage() {
                         </Card>
                       </>
                     ) : user.type === "buyer" ? (
-                      // Показываем метрики для покупателей
                       <>
                         <Card>
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -331,7 +328,6 @@ export default function ProfilePage() {
                         </Card>
                       </>
                     ) : (
-                      // Показываем метрики для продавцов
                       <>
                         <Card>
                           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -380,7 +376,9 @@ export default function ProfilePage() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-sm">
-                          {new Date(user.createdAt).toLocaleDateString()}
+                          {user.createdAt
+                            ? new Date(user.createdAt).toLocaleDateString()
+                            : "Не указано"}
                         </div>
                       </CardContent>
                     </Card>
@@ -400,7 +398,7 @@ export default function ProfilePage() {
                       <CardContent>
                         <div className="text-sm">
                           {user.role === "admin" || user.role === "manager"
-                            ? new Date().toLocaleString() // В реальном приложении здесь будет время последнего входа
+                            ? new Date().toLocaleString()
                             : user.location || "Не указано"}
                         </div>
                       </CardContent>
@@ -477,7 +475,7 @@ export default function ProfilePage() {
                             >
                               <div className="flex justify-between items-center">
                                 <span className="font-bold">
-                                  {material.price} ₽/кг
+                                  {material.price} ₸/кг
                                 </span>
                                 <span>Количество: {material.quantity} кг</span>
                               </div>
@@ -595,7 +593,7 @@ export default function ProfilePage() {
                                   Цена:{" "}
                                 </span>
                                 <span className="text-sm font-medium">
-                                  {application.price} ₽/кг
+                                  {application.price} ₸/кг
                                 </span>
                               </div>
                             </div>
@@ -712,8 +710,9 @@ export default function ProfilePage() {
                           <CardContent>
                             <div className="text-2xl font-bold">
                               {
-                                materials.filter((m) => m.status === "active")
-                                  .length
+                                allMaterials.filter(
+                                  (m) => m.status === "active"
+                                ).length
                               }
                             </div>
                             <p className="text-xs text-muted-foreground">
@@ -730,8 +729,9 @@ export default function ProfilePage() {
                           <CardContent>
                             <div className="text-2xl font-bold">
                               {
-                                materials.filter((m) => m.status === "pending")
-                                  .length
+                                allMaterials.filter(
+                                  (m) => m.status === "pending"
+                                ).length
                               }
                             </div>
                             <p className="text-xs text-muted-foreground">

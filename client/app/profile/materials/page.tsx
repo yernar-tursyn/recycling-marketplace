@@ -13,91 +13,90 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getUserMaterials, deleteMaterial } from "@/services/material-service";
+import { getUserMaterials } from "@/services/material-service";
 import type { MaterialType } from "@/types/material";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Plus, Pencil, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-export default function MaterialsPage() {
+export default function UserMaterialsPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-
   const [materials, setMaterials] = useState<MaterialType[]>([]);
   const [isLoadingMaterials, setIsLoadingMaterials] = useState(true);
-  const [selectedMaterial, setSelectedMaterial] = useState<MaterialType | null>(
-    null
-  );
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (!isLoading && !user) {
-        router.push("/auth/login");
-        return;
-      }
-
-      if (user && user.type !== "seller") {
-        router.push("/profile");
-        return;
-      }
-
-      if (user) {
-        fetchMaterials();
-      }
+    if (!isLoading && !user) {
+      router.push("/auth/login");
+      return;
     }
-  }, [user, isLoading, router]);
 
-  const fetchMaterials = async () => {
-    if (!user) return;
-
-    setIsLoadingMaterials(true);
-
-    try {
-      const data = await getUserMaterials(user.id);
-      setMaterials(data);
-    } catch (error) {
+    if (user && user.type !== "seller") {
+      router.push("/profile");
       toast({
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось загрузить материалы",
+        title: "Доступ запрещен",
+        description: "Только продавцы могут просматривать свои материалы",
       });
-    } finally {
-      setIsLoadingMaterials(false);
+      return;
     }
-  };
 
-  const handleDeleteMaterial = async () => {
-    if (!selectedMaterial) return;
+    const fetchMaterials = async () => {
+      try {
+        if (!user) return;
 
-    try {
-      await deleteMaterial(selectedMaterial.id);
+        setError(null);
+        console.log("Fetching materials for user:", user.id);
+        const data = await getUserMaterials(user.id);
+        console.log("Fetched materials:", data);
 
-      toast({
-        title: "Материал удален",
-        description: "Материал был успешно удален",
-      });
+        setMaterials(data);
+      } catch (error) {
+        console.error("Error fetching materials:", error);
+        setError(
+          "Не удалось загрузить материалы. Пожалуйста, попробуйте позже."
+        );
+        toast({
+          variant: "destructive",
+          title: "Ошибка",
+          description: "Не удалось загрузить материалы",
+        });
+      } finally {
+        setIsLoadingMaterials(false);
+      }
+    };
 
-      setIsDeleteDialogOpen(false);
+    if (user) {
       fetchMaterials();
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось удалить материал",
-      });
+    }
+  }, [user, isLoading, router, toast]);
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active":
+        return <Badge variant="default">Активен</Badge>;
+      case "pending":
+        return <Badge variant="secondary">На модерации</Badge>;
+      case "rejected":
+        return <Badge variant="destructive">Отклонен</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  if (isLoading || !user || user.type !== "seller") {
+  if (isLoading || isLoadingMaterials) {
+    return (
+      <div className="container py-10">
+        <div className="text-center">
+          <p className="text-muted-foreground">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || user.type !== "seller") {
     return null;
   }
 
@@ -111,16 +110,20 @@ export default function MaterialsPage() {
         </Button>
       </div>
 
-      {isLoadingMaterials ? (
-        <div className="text-center py-10">
-          <p className="text-muted-foreground">Загрузка материалов...</p>
-        </div>
-      ) : materials.length > 0 ? (
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Ошибка</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {materials.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {materials.map((material) => (
             <Card key={material.id} className="overflow-hidden">
               <div
-                className="h-48 bg-muted bg-cover bg-center cursor-pointer"
+                className="h-40 bg-muted bg-cover bg-center cursor-pointer"
                 style={{ backgroundImage: `url(${material.image})` }}
                 onClick={() => router.push(`/marketplace/${material.id}`)}
               />
@@ -130,21 +133,7 @@ export default function MaterialsPage() {
               >
                 <div className="flex justify-between">
                   <CardTitle className="text-lg">{material.name}</CardTitle>
-                  <Badge
-                    variant={
-                      material.status === "active"
-                        ? "default"
-                        : material.status === "pending"
-                        ? "secondary"
-                        : "destructive"
-                    }
-                  >
-                    {material.status === "active"
-                      ? "Активен"
-                      : material.status === "pending"
-                      ? "На проверке"
-                      : "Отклонен"}
-                  </Badge>
+                  {getStatusBadge(material.status)}
                 </div>
                 <CardDescription>{material.type}</CardDescription>
               </CardHeader>
@@ -152,49 +141,35 @@ export default function MaterialsPage() {
                 className="p-4 pt-0 cursor-pointer"
                 onClick={() => router.push(`/marketplace/${material.id}`)}
               >
-                <p className="text-sm line-clamp-2 mb-2">
-                  {material.description}
-                </p>
                 <div className="flex justify-between items-center">
                   <span className="font-bold">{material.price} ₸/кг</span>
                   <span>Количество: {material.quantity} кг</span>
                 </div>
               </CardContent>
-              <CardFooter className="p-4 flex justify-between">
-                <div className="space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/profile/materials/edit/${material.id}`)
-                    }
-                    disabled={
-                      material.status !== "active" &&
-                      material.status !== "pending"
-                    }
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Редактировать
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedMaterial(material);
-                      setIsDeleteDialogOpen(true);
-                    }}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Удалить
-                  </Button>
-                </div>
+              <CardFooter className="p-4 border-t flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    router.push(`/profile/materials/edit/${material.id}`)
+                  }
+                  disabled={
+                    material.status !== "active" &&
+                    material.status !== "pending"
+                  }
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Редактировать
+                </Button>
               </CardFooter>
             </Card>
           ))}
         </div>
       ) : (
         <div className="text-center py-10">
-          <p className="text-muted-foreground">У вас пока нет материалов</p>
+          <p className="text-muted-foreground">
+            У вас пока нет материалов на продажу
+          </p>
           <Button
             className="mt-4"
             onClick={() => router.push("/profile/materials/new")}
@@ -203,29 +178,6 @@ export default function MaterialsPage() {
           </Button>
         </div>
       )}
-
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Удаление материала</DialogTitle>
-            <DialogDescription>
-              Вы уверены, что хотите удалить материал "{selectedMaterial?.name}
-              "? Это действие нельзя отменить.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Отмена
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteMaterial}>
-              Удалить
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -1,234 +1,344 @@
 import type { MaterialType } from "@/types/material";
-import { v4 as uuidv4 } from "uuid";
 
-const MATERIALS_KEY = "eco_market_materials";
+const API_URL =
+  "https://recycling-marketplace-backend.onrender.com/api/materials";
 
-const getMaterialsFromStorage = (): MaterialType[] => {
-  const materials = localStorage.getItem(MATERIALS_KEY);
-
-  if (materials) {
-    return JSON.parse(materials);
-  }
-
-  const initialMaterials = [
-    {
-      id: uuidv4(),
-      name: "ПЭТ бутылки",
-      type: "plastic",
-      description: "Чистые пластиковые бутылки без крышек и этикеток",
-      price: 25,
-      quantity: 100,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user1",
-      userName: "Иван Петров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "sell",
-    },
-    {
-      id: uuidv4(),
-      name: "Макулатура",
-      type: "paper",
-      description: "Газеты, журналы, книги, картон",
-      price: 15,
-      quantity: 200,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user2",
-      userName: "Анна Иванова",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "buy",
-    },
-    {
-      id: uuidv4(),
-      name: "Алюминиевые банки",
-      type: "metal",
-      description: "Чистые алюминиевые банки от напитков",
-      price: 80,
-      quantity: 50,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user3",
-      userName: "Петр Сидоров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "sell",
-    },
-    {
-      id: uuidv4(),
-      name: "Стеклянные бутылки",
-      type: "glass",
-      description: "Стеклянные бутылки любого цвета",
-      price: 10,
-      quantity: 150,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user1",
-      userName: "Иван Петров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "buy",
-    },
-    {
-      id: uuidv4(),
-      name: "Старая электроника",
-      type: "electronics",
-      description: "Компьютеры, телефоны, платы и другая электроника",
-      price: 200,
-      quantity: 30,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user2",
-      userName: "Анна Иванова",
-      status: "pending",
-      createdAt: new Date().toISOString(),
-      dealType: "sell",
-    },
-    {
-      id: uuidv4(),
-      name: "Картонные коробки",
-      type: "paper",
-      description: "Чистые картонные коробки",
-      price: 20,
-      quantity: 100,
-      image: "/placeholder.svg?height=200&width=300",
-      userId: "user3",
-      userName: "Петр Сидоров",
-      status: "active",
-      createdAt: new Date().toISOString(),
-      dealType: "buy",
-    },
-  ];
-
-  localStorage.setItem(MATERIALS_KEY, JSON.stringify(initialMaterials));
-  return initialMaterials;
+const mapApiMaterialToAppMaterial = (apiMaterial: any): MaterialType => {
+  return {
+    id: apiMaterial.id.toString(),
+    name: apiMaterial.name || "Без названия",
+    type: apiMaterial.category_id
+      ? mapCategoryIdToType(apiMaterial.category_id)
+      : "other",
+    description: apiMaterial.description || "",
+    price: Number.parseFloat(apiMaterial.price) || 0,
+    quantity: apiMaterial.quantity || 100, // Устанавливаем значение по умолчанию
+    image: apiMaterial.image_url || null,
+    userId: apiMaterial.user_id || "admin",
+    userName: apiMaterial.user_name || "Администратор",
+    status: mapApiStatusToAppStatus(apiMaterial.status),
+    createdAt: apiMaterial.created_at || new Date().toISOString(),
+    dealType: apiMaterial.deal_type || "sell", // Устанавливаем значение по умолчанию
+  };
 };
 
-const saveMaterials = (materials: MaterialType[]) => {
-  localStorage.setItem(MATERIALS_KEY, JSON.stringify(materials));
+const mapCategoryIdToType = (categoryId: number): string => {
+  const categoryMap: { [key: number]: string } = {
+    1: "plastic",
+    2: "paper",
+    3: "glass",
+    4: "metal",
+    5: "other",
+    6: "organic",
+    7: "other",
+  };
+  return categoryMap[categoryId] || "other";
+};
+
+const mapApiStatusToAppStatus = (apiStatus: string): string => {
+  const statusMap: { [key: string]: string } = {
+    Approved: "active",
+    "Under review": "pending",
+    Rejected: "rejected",
+  };
+  return statusMap[apiStatus] || "pending";
 };
 
 export const getMaterials = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  try {
+    console.log("Fetching materials from API:", API_URL);
 
-  return getMaterialsFromStorage();
+    const response = await fetch(API_URL, {
+      cache: "no-store",
+      headers: {
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      },
+    });
+
+    console.log("API response status:", response.status);
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const apiMaterials = await response.json();
+    console.log("Materials from API (raw):", apiMaterials);
+
+    if (!Array.isArray(apiMaterials)) {
+      console.error("API did not return an array:", apiMaterials);
+      return [];
+    }
+
+    const processedMaterials = apiMaterials.map(mapApiMaterialToAppMaterial);
+
+    console.log("Processed materials:", processedMaterials);
+    return processedMaterials;
+  } catch (error) {
+    console.error("Error fetching materials from API:", error);
+    return [];
+  }
+};
+
+export const getAllMaterials = async () => {
+  return getMaterials();
+};
+
+export const getUserMaterials = async (userId: string) => {
+  try {
+    const allMaterials = await getMaterials();
+
+    return allMaterials.filter((m: MaterialType) => m.userId === userId);
+  } catch (error) {
+    console.error("Error fetching user materials:", error);
+    return [];
+  }
 };
 
 export const getMaterialById = async (id: string) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  try {
+    const response = await fetch(`${API_URL}/${id}`);
 
-  const materials = getMaterialsFromStorage();
-  const material = materials.find((m) => m.id === id);
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
 
-  if (!material) {
+    const apiMaterial = await response.json();
+    return mapApiMaterialToAppMaterial(apiMaterial);
+  } catch (error) {
+    console.error("Error fetching material by ID:", error);
     throw new Error("Material not found");
   }
-
-  return material;
 };
 
 export const createMaterial = async (
-  material: Omit<MaterialType, "id" | "createdAt" | "status">
+  material: Omit<MaterialType, "id" | "createdAt" | "status" | "userName">
 ) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("admin_token");
 
-  const materials = getMaterialsFromStorage();
+    const apiMaterial = {
+      name: material.name,
+      category_id: getCategoryIdFromType(material.type),
+      description: material.description,
+      price: material.price.toString(),
+      unit: "kg",
+      image_url: material.image,
+      status: "Under review",
+    };
 
-  const newMaterial: MaterialType = {
-    ...material,
-    id: uuidv4(),
-    createdAt: new Date().toISOString(),
-    status: "pending",
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(apiMaterial),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const responseData = await response.json();
+    return mapApiMaterialToAppMaterial(responseData);
+  } catch (error) {
+    console.error("Error creating material:", error);
+    throw error;
+  }
+};
+
+const getCategoryIdFromType = (type: string): number => {
+  const typeMap: { [key: string]: number } = {
+    plastic: 1,
+    paper: 2,
+    glass: 3,
+    metal: 4,
+    other: 7,
+    organic: 6,
   };
+  return typeMap[type] || 7;
+};
 
-  saveMaterials([...materials, newMaterial]);
+export const updateMaterialStatus = async (id: string, status: string) => {
+  try {
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("admin_token");
 
-  return newMaterial;
+    const response = await fetch(`${API_URL}/${id}`);
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const currentMaterial = await response.json();
+
+    const apiStatus =
+      status === "active"
+        ? "Approved"
+        : status === "pending"
+        ? "Under review"
+        : "Rejected";
+
+    const updatedMaterial = {
+      ...currentMaterial,
+      status: apiStatus,
+    };
+
+    const updateResponse = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(updatedMaterial),
+    });
+
+    if (!updateResponse.ok) {
+      const errorText = await updateResponse.text();
+      console.error(
+        `API request failed with status ${updateResponse.status}: ${errorText}`
+      );
+      throw new Error(
+        `API request failed with status ${updateResponse.status}`
+      );
+    }
+
+    const result = await updateResponse.json();
+    console.log("Material status successfully updated in API:", result);
+    return mapApiMaterialToAppMaterial(result);
+  } catch (error) {
+    console.error("Failed to update material status in API:", error);
+    throw error;
+  }
 };
 
 export const updateMaterial = async (
   id: string,
   updates: Partial<MaterialType>
 ) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("admin_token");
 
-  const materials = getMaterialsFromStorage();
-  const index = materials.findIndex((m) => m.id === id);
+    const response = await fetch(`${API_URL}/${id}`);
 
-  if (index === -1) {
-    throw new Error("Material not found");
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    const currentMaterial = await response.json();
+
+    const apiUpdates: any = {};
+
+    if (updates.name !== undefined) apiUpdates.name = updates.name;
+    if (updates.type !== undefined)
+      apiUpdates.category_id = getCategoryIdFromType(updates.type);
+    if (updates.description !== undefined)
+      apiUpdates.description = updates.description;
+    if (updates.price !== undefined)
+      apiUpdates.price = updates.price.toString();
+    if (updates.image !== undefined) apiUpdates.image_url = updates.image;
+    if (updates.status !== undefined) {
+      apiUpdates.status =
+        updates.status === "active"
+          ? "Approved"
+          : updates.status === "pending"
+          ? "Under review"
+          : "Rejected";
+    }
+
+    const updatedMaterial = {
+      ...currentMaterial,
+      ...apiUpdates,
+    };
+
+    const updateResponse = await fetch(`${API_URL}/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(updatedMaterial),
+    });
+
+    if (!updateResponse.ok) {
+      throw new Error(
+        `API request failed with status ${updateResponse.status}`
+      );
+    }
+
+    const result = await updateResponse.json();
+    return mapApiMaterialToAppMaterial(result);
+  } catch (error) {
+    console.error("Failed to update material in API:", error);
+    throw error;
   }
-
-  const updatedMaterial = { ...materials[index], ...updates };
-  materials[index] = updatedMaterial;
-
-  saveMaterials(materials);
-
-  return updatedMaterial;
-};
-
-export const deleteMaterial = async (id: string) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const materials = getMaterialsFromStorage();
-  const filteredMaterials = materials.filter((m) => m.id !== id);
-
-  saveMaterials(filteredMaterials);
-
-  return { success: true };
-};
-
-export const getUserMaterials = async (userId: string) => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  const materials = getMaterialsFromStorage();
-  return materials.filter((m) => m.userId === userId);
-};
-
-export const getAllMaterials = async () => {
-  await new Promise((resolve) => setTimeout(resolve, 300));
-
-  return getMaterialsFromStorage();
-};
-
-export const updateMaterialStatus = async (id: string, status: string) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
-  const materials = getMaterialsFromStorage();
-  const index = materials.findIndex((m) => m.id === id);
-
-  if (index === -1) {
-    throw new Error("Material not found");
-  }
-
-  materials[index].status = status;
-
-  saveMaterials(materials);
-
-  return materials[index];
 };
 
 export const updateMaterialQuantity = async (
-  materialId: string,
-  quantityToSubtract: number
+  id: string,
+  quantityChange: number
 ) => {
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    const material = await getMaterialById(id);
 
-  const materials = getMaterialsFromStorage();
-  const index = materials.findIndex((m) => m.id === materialId);
+    const newQuantity = material.quantity - quantityChange;
 
-  if (index === -1) {
-    throw new Error("Material not found");
+    return updateMaterial(id, { quantity: newQuantity });
+  } catch (error) {
+    console.error("Failed to update material quantity in API:", error);
+    throw error;
   }
+};
 
-  const newQuantity = Math.max(
-    0,
-    materials[index].quantity - quantityToSubtract
-  );
-  materials[index].quantity = newQuantity;
+export const deleteMaterial = async (id: string) => {
+  try {
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("admin_token");
 
-  if (newQuantity === 0) {
-    materials[index].status = "sold";
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: "DELETE",
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API request failed with status ${response.status}`);
+    }
+
+    console.log("Material successfully deleted from API");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to delete material from API:", error);
+    throw error;
   }
+};
 
-  saveMaterials(materials);
+export const getMaterialsByFilter = async (filters: {
+  category?: string;
+  sort?: string;
+}) => {
+  try {
+    const allMaterials = await getMaterials();
 
-  return materials[index];
+    let filteredMaterials = [...allMaterials];
+
+    if (filters.category && filters.category !== "all") {
+      filteredMaterials = filteredMaterials.filter(
+        (m) => m.type === filters.category
+      );
+    }
+
+    if (filters.sort === "price") {
+      filteredMaterials.sort((a, b) => a.price - b.price);
+    }
+
+    return filteredMaterials;
+  } catch (error) {
+    console.error("Error fetching filtered materials:", error);
+    return [];
+  }
 };

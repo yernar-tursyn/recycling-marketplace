@@ -11,6 +11,7 @@ import {
   loginUser,
   registerUser,
   getUserProfile,
+  forceUpdateUserTypeFromServer,
 } from "@/services/auth-service";
 import type { UserType } from "@/types/user";
 
@@ -26,9 +27,9 @@ interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   setAdminSession: (token: string) => void;
+  refreshUserType: () => Promise<boolean>;
 }
 
-// Создаем контекст с начальным значением undefined
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -36,7 +37,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Only run on client-side
     if (typeof window === "undefined") {
       setIsLoading(false);
       return;
@@ -49,7 +49,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       getUserProfile(token)
         .then((userData) => {
           console.log("[Auth Context] User profile loaded:", userData.name);
+          console.log("[Auth Context] User type:", userData.type);
           setUser(userData);
+
+          forceUpdateUserTypeFromServer()
+            .then((updated) => {
+              if (updated) {
+                getUserProfile(token)
+                  .then((updatedUserData) => {
+                    console.log(
+                      "[Auth Context] User profile updated after type check:",
+                      updatedUserData.name
+                    );
+                    console.log(
+                      "[Auth Context] Updated user type:",
+                      updatedUserData.type
+                    );
+                    setUser(updatedUserData);
+                  })
+                  .catch((error) => {
+                    console.error(
+                      "[Auth Context] Error updating user after type check:",
+                      error
+                    );
+                  });
+              }
+            })
+            .catch((error) => {
+              console.error(
+                "[Auth Context] Error checking user type on server:",
+                error
+              );
+            });
         })
         .catch((error) => {
           console.log("[Auth Context] Error fetching user profile:", error);
@@ -70,8 +101,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { token, user } = await loginUser(email, password);
 
       if (token) {
-        console.log("[Auth Context] Login successful, setting token and user");
+        console.log(
+          "[Auth Context] Login successful, setting token and user:",
+          user
+        );
+        console.log("[Auth Context] User type:", user.type);
         localStorage.setItem("token", token);
+
+        if (user.type) localStorage.setItem("user_type", user.type);
+        if (user.role) localStorage.setItem("user_role", user.role);
+
         setUser(user as UserType);
         return true;
       }
@@ -91,15 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     type: string
   ) => {
     try {
-      const { token, user } = await registerUser(name, email, password, type);
-
-      if (token) {
-        localStorage.setItem("token", token);
-        setUser(user as UserType);
-        return true;
-      }
-
-      return false;
+      const response = await registerUser(name, email, password, type);
+      return response.success;
     } catch (error) {
       return false;
     }
@@ -108,7 +140,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("admin_token");
-    // Вызываем функцию logout из auth-service для очистки дополнительных данных
+    localStorage.removeItem("user_type");
+    localStorage.removeItem("user_role");
     import("@/services/auth-service").then(({ logout }) => logout());
     setUser(null);
   };
@@ -117,9 +150,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("admin_token", token);
   };
 
+  const refreshUserType = async () => {
+    const updated = await forceUpdateUserTypeFromServer();
+
+    if (updated && user) {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const updatedUserData = await getUserProfile(token);
+          setUser(updatedUserData);
+          return true;
+        } catch (error) {
+          console.error(
+            "[Auth Context] Error updating user after type refresh:",
+            error
+          );
+          return false;
+        }
+      }
+    }
+
+    return updated;
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, login, register, logout, isLoading, setAdminSession }}
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        isLoading,
+        setAdminSession,
+        refreshUserType,
+      }}
     >
       {children}
     </AuthContext.Provider>

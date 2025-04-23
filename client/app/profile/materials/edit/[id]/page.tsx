@@ -153,10 +153,12 @@ export default function EditMaterialPage({
 
       router.push("/profile/materials");
     } catch (error) {
+      console.error("Error updating material:", error);
       toast({
         variant: "destructive",
         title: "Ошибка",
-        description: "Не удалось обновить материал",
+        description:
+          "Не удалось обновить материал. Пожалуйста, попробуйте позже.",
       });
     } finally {
       setIsSubmitting(false);
