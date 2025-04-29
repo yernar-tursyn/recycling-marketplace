@@ -151,7 +151,7 @@ export default function UsersPage() {
     }
   };
 
-  const getRoleLabel = (role: string) => {
+  const getRoleLabel = (role: string | undefined) => {
     switch (role) {
       case "admin":
         return (
@@ -170,7 +170,7 @@ export default function UsersPage() {
     }
   };
 
-  const getTypeLabel = (type: string) => {
+  const getTypeLabel = (type: string | undefined) => {
     switch (type) {
       case "staff":
         return <Badge variant="secondary">Персонал</Badge>;
@@ -179,7 +179,7 @@ export default function UsersPage() {
       case "buyer":
         return <Badge variant="outline">Покупатель</Badge>;
       default:
-        return <Badge variant="outline">{type}</Badge>;
+        return <Badge variant="outline">{type || "Не указан"}</Badge>;
     }
   };
 
@@ -231,7 +231,7 @@ export default function UsersPage() {
                   <TableCell>
                     <Badge
                       variant={
-                        user.status === "active" ? "outline" : "destructive"
+                        user.status === "active" ? "success" : "destructive"
                       }
                       className={
                         user.status === "active"
@@ -243,7 +243,9 @@ export default function UsersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {user.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString()
+                      : "Не указана"}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
