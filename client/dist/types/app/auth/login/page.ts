@@ -1,4 +1,4 @@
-// File: D:\UGS\update\recycling-marketplace\client\app\auth\login\page.tsx
+// File: C:\Users\KARADA WEB\Downloads\с\recycling-marketplace (1)\recycling-marketplace\client\app\auth\login\page.tsx
 import * as entry from '../../../../../app/auth/login/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
